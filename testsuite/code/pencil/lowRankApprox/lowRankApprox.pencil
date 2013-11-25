@@ -1,0 +1,166 @@
+/*
+ * Copyright (c) 2013-2014, ARM Limited
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+/* Simple PENCIL code for doing a low-rank approximation to a correlation between a block,
+ * define as the sum of weighted products of horizontal and vertical masks, and an image.
+ */
+
+/* Notes
+ * -----
+ * This code unavoidably incorporates some of my assumptions about which concrete ways of decomposing
+ * a mathematical expression into concrete code constructs will perform better.
+ * Unfortunately given that I (and most programmers)
+ * have flawed models of machine performance this may well actually be the wrong way...
+ * In particular, (with suitable rearrangement of masks and weights) the correlations along the
+ * first and second dimensions commute and could be done in either order. I do the second
+ * dimension correlation first only because I expect the cache prefetcher to work best on the second
+ * dimension (unit stride access pattern) so I think I want that pattern to occur in the simplest piece of code.
+ *
+ * Several of the nested loops which are writen in a concrete order but can validly be
+ * permuted without changing data structures, have been marked with //#. (Obviously more loop
+ * permutations can be done if you introduce extra storage.)
+ *
+ * highestCorrelationPoints should output the "set" of the noResults largest values in the accumulators array.
+ * The code (basically insertion into a sorted list)
+ * for doing this in highestCorrelationPoints is just one concrete way of doing this; there might be
+ * other ways of expressing this in PENCIL which are more amenable to analysis. Eg, you could find
+ * smallest value in array and, if smaller than "value" then overwrite it with the data for
+ * current position. In theory this requires more operations
+ * than keeping the list sorted, but maybe simpler control flow is worth it.
+ *
+ * Typical parameter value ranges:
+ * fstDim ~ 288, or conceivably 2* or 4* times bigger but NOT much more in practice deployment
+ * sndDim ~ 352, or conceivably 2* or 4* times bigger but NOT much more in practice deployment
+ * maskLen ~ 9 or 11 (generally a small, odd number generally propotional to the fstDim & sndDim size
+ *     so if they double, this should roughly double)
+ * noMasks ~ 2 or 3
+ * noResults ~ maybe 20 to 60
+ */
+
+const float MINUS_INFTY=-1e37; // value smaller than any encountered correlation score
+
+
+/* do a 1-D correlation along the second dimension */
+static
+void sndDimCorrelate(int noMasks,int maskLen,int fstDim,int sndDim,float mask[noMasks][maskLen],
+     float results[noMasks][fstDim][sndDim],float img[fstDim][sndDim]) {
+    for(int fst=0;fst<fstDim;++fst){ //#
+        for(int snd=0;snd<sndDim-maskLen;++snd){ //#
+            for(int p=0;p<noMasks;++p){ //#
+                float accum = 0;
+                for(int l=0;l<maskLen;++l){
+                    accum = accum + mask[p][l] * img[fst][snd+l];
+                }
+                results[p][fst][snd] = accum;
+            }
+        }
+    }
+}
+
+/* do a 1-D correlation along the first dimension */
+static
+void fstDimCorrelate(int noMasks,int maskLen,int fstDim,int sndDim,float mask[noMasks][maskLen],
+     float results[noMasks][fstDim][sndDim],float img[fstDim][sndDim]) {
+    for(int snd=0;snd<sndDim;++snd){ //#
+        for(int fst=0;fst<fstDim-maskLen;++fst){ //#
+            for(int p=0;p<noMasks;++p){ //#
+                float accum = 0;
+                for(int l=0;l<maskLen;++l){
+                    accum = accum + mask[p][l] * img[fst+l][snd];
+                }
+                results[p][fst][snd] = accum;
+            }
+        }
+    }
+}
+
+/* add in to results weighted versions of the correlation responses */
+static
+void accumulateArrayStackWeightedSum(int fstDim,int sndDim,int stackDepth,float results[fstDim][sndDim],float imageStack[stackDepth][fstDim][sndDim],float weights[stackDepth]) {
+    /* compute the weighted sum of the values for different s at the same spatial position */
+    for(int fst=0;fst<fstDim;++fst){ //#
+        for(int snd=0;snd<sndDim;++snd){ //#
+            for(int s=0;s<stackDepth;++s){
+                results[fst][snd] = results[fst][snd] + weights[s] * imageStack[s][fst][snd];
+            }
+        }
+    }
+}
+
+void correlationLowRankApprox(int noMasks,int maskLen,int fstDim,int sndDim,
+     float accumulators[fstDim][sndDim],float img[fstDim][sndDim],float masks[2][noMasks][maskLen],
+     float weights[noMasks][noMasks]) {
+    /* fill output array with zeroes; might be better to use library function */
+    for(int fst=0;fst<fstDim;++fst){ //#
+        for(int snd=0;snd<sndDim;++snd){ //#
+            accumulators[fst][snd]=0;
+        }
+    }
+    /* actually compute the weight for a low-rank approximation */
+    float imgStack[noMasks][fstDim][sndDim];
+    sndDimCorrelate(noMasks,maskLen,fstDim,sndDim,masks[0],imgStack,img);
+    for(int j=0;j<noMasks;++j){
+        float individualResults[noMasks][fstDim][sndDim];
+        fstDimCorrelate(noMasks,maskLen,fstDim,sndDim,masks[1],individualResults,imgStack[j]);
+        accumulateArrayStackWeightedSum(fstDim,sndDim,noMasks,accumulators,individualResults,weights[j]);
+    }
+    /* result is now in the accumulators array */
+}
+
+/* arrays scores and positions hold the biggest noResults responses and get passed back to "user code"
+ * see note at top of file */
+void highestCorrelationPoints(int noResults,int noMasks,int maskLen,int fstDim,int sndDim,
+     float scores[noResults],int positions[noResults][2],float img[fstDim][sndDim],
+     float masks[2][noMasks][maskLen],float weights[noMasks][noMasks]) {
+    /* initialise scores with values guaranteed smaller than all genuine values; library function */
+    for(int i=0;i<noResults;++i){
+        scores[i]=MINUS_INFTY;
+    }
+    /* compute response scores over the image */
+    float accumulators[fstDim][sndDim];
+    correlationLowRankApprox(noMasks,maskLen,fstDim,sndDim,accumulators,img,masks,weights);
+    /* find the top noResults ones in the array */
+    for(int fst=maskLen;fst<fstDim-maskLen;++fst){ //#
+        for(int snd=maskLen;snd<sndDim-maskLen;++snd){ //#
+            /* find a position in the list to insert this at, if any */
+            float value=accumulators[fst][snd];
+            int pos=noResults-1;
+            while(pos>=0 && scores[pos]<value){
+                pos=pos-1;
+            }
+            /* pos now indexes the first score entry bigger than value, so move down one */
+            pos=pos+1;
+            if(pos<noResults){
+                /* move the "smaller than" portion of the list down one slot */
+                for(int k=noResults;k>pos;--k){
+                    positions[k][0]=positions[k-1][0];
+                    positions[k][1]=positions[k-1][1];
+                    scores[k]=scores[k-1];
+                }
+                /* insert new values into the vacated slot */
+                positions[pos][0]=fst;
+                positions[pos][1]=snd;
+                scores[pos]=value;
+            }
+        }
+    }
+}

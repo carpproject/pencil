@@ -1,0 +1,158 @@
+# Copyright (c) 2013-2014, ARM Limited
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+proc clean {name} {
+  file delete "${name}.h"
+  file delete "${name}.run"
+}
+
+proc build_expected_error_set_for_file {file} {
+  set result [dict create]
+  set fp [open "$file"]
+  set data [split [read "$fp"] "\n"]
+  close $fp
+  set num 1
+
+  foreach line $data {
+    if {[string match *//@Error* $line]} {
+      dict set result $num False
+    }
+    incr num
+  }
+  return $result
+}
+
+proc build_expected_error_set {args} {
+  set result [dict create]
+  foreach file $args {
+    set ferrors [build_expected_error_set_for_file $file]
+    if {[dict size $ferrors] > 0} {
+      dict set result $file [build_expected_error_set_for_file $file]
+    }
+  }
+  return $result
+}
+
+proc run_tool {tool name out args} {
+  set success 0
+  set error 255
+
+  set expected $success
+
+  set errors [build_expected_error_set $args]
+
+  if {[dict size $errors] > 0} {
+    set expected $error
+  }
+
+  spawn scala "$tool" -o "$out" "$args"
+
+  # Collect all output
+  set lines {}
+  expect {
+    ERROR {
+      fail "$name: error: $expect_out(buffer)"
+    }
+
+    -re {..*} {
+      append lines $expect_out(buffer)
+      exp_continue
+    }
+
+    timeout {
+      unresolved "$name: timeout"
+    }
+  }
+
+  # Compare tool output with list of expected errors
+  set correct True
+  set linelist [regexp -all -inline {(code.*?) line (\d+):} $lines]
+  foreach {pattert file line} $linelist {
+    if { ! [dict exists $errors $file $line] } {
+      fail "$file: Compiler output (unexpected error on line $line)"
+      set correct False
+    } else {
+      dict set errors $file $line True
+    }
+  }
+  dict for {key1 val1} $errors {
+    dict for {key2 val2} $val1 {
+      if { ! $val2 } {
+        fail "$name: Compiler output (expected error on line $key2 was not reported)"
+        set correct False
+      }
+    }
+  }
+  if {$correct} {
+    pass "$name: Compiler output"
+  }
+
+  catch wait result
+  set code [lindex $result 3]
+  if {$code != $expected} {
+    fail "$name: Exit code ($code)"
+  } else {
+    pass "$name: Exit code"
+  }
+}
+
+proc compile_c {name cfile hfile} {
+  if { ![file exists "${cfile}" ]} {
+    untested "$name: C Compilation"
+    return
+  }
+  if { ![file exists "${hfile}" ]} {
+    unresolved "$name: C Compilation"
+    return
+  }
+  spawn gcc -std=c99 -include "code/carp-common.h" -include "${hfile}" "${cfile}" -o "${name}.run"
+  catch wait result
+  set code [lindex $result 3]
+  if {$code != 0} {
+    fail "${name}: C Compilation"
+  } else {
+    pass "${name}: C Compilation"
+  }
+}
+
+proc run_binary {name binary} {
+  if { ! [file exists "${binary}"] } {
+    unresolved "${name}: Execution"
+    return
+  }
+  spawn "./${binary}"
+  catch wait result
+  set code [lindex $result 3]
+  if {$code != 0} {
+    fail "${name}: Execution"
+  } else {
+    pass "${name}: Execution"
+  }
+
+}
+
+proc test_tool {tool name args} {
+  clean $name
+  run_tool $tool "${name}" "${name}.h" $args
+  if {[ file exists "${name}.c"]} {
+    compile_c "${name}" "${name}.c" "${name}.h"
+    run_binary "${name}" "${name}.run"
+  }
+}

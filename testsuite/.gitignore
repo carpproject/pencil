@@ -1,0 +1,12 @@
+*.sum
+*.log
+*.vobla.h
+*.vobla.run
+*.pencil.h
+*.pencil.run
+*.o
+wrapper.c
+DBLAT*
+test*blas*
+blastest/output/
+code/pencil/*/*.c

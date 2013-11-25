@@ -1,0 +1,112 @@
+// Copyright (c) 2013-2014, ARM Limited
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+// This file defines PENCIL intrinsics corresponding to OpenCL 1.x built-in functions.
+
+//Common functions:
+gentype clamp(gentype, gentype, gentype);
+gentype degrees(gentype);
+gentype max(gentype, gentype);
+gentype min(gentype, gentype);
+gentype mix(gentype, gentype, gentype);
+gentype radians(gentype);
+gentype sign(gentype);
+gentype smoothstep(gentype, gentype, gentype);
+gentype step(gentype, gentype);
+
+//Integer functions:
+gentype abs(gentype);
+gentype abs-diff(gentype, gentype);
+gentype add_sat(gentype, gentype);
+gentype hadd(gentype, gentype);
+gentype rhadd(gentype, gentype);
+gentype clz(gentype);
+gentype clamp(gentype, gentype, gentype);
+gentype mad_hi(gentype, gentype, gentype);
+gentype mad24(gentype, gentype, gentype);
+gentype mad_sat(gentype, gentype, gentype);
+gentype mul_hi(gentype, gentype);
+gentype mul24(gentype, gentype);
+gentype rotate(gentype, gentype);
+gentype sub_sat(gentype, gentype);
+gentype upsample(gentype, gentype, gentype);
+gentype popcount(gentype);
+
+//Math functions:
+gentype acos (gentype);
+gentype acosh (gentype);
+gentype acospi (gentype);
+gentype asin (gentype);
+gentype asinh (gentype);
+gentype asinpi (gentype);
+gentype atan (gentype);
+gentype atan2 (gentype,  gentype);
+gentype atanh (gentype);
+gentype atanpi (gentype);
+gentype atan2pi (gentype,  gentype);
+gentype cbrt (gentype);
+gentype ceil (gentype);
+gentype copysign (gentype,  gentype);
+gentype cos (gentype);
+gentype cosh (gentype);
+gentype cospi (gentype);
+gentype erf (gentype);
+gentype erfc (gentype);
+gentype exp (gentype);
+gentype exp2 (gentype);
+gentype exp10 (gentype);
+gentype expm1 (gentype);
+gentype fabs (gentype);
+gentype fdim (gentype,  gentype);
+gentype floor (gentype);
+gentype fma (gentype,  gentype,  gentype);
+gentype fmax (gentype,  gentype);
+gentype fmax (gentype, gentype);
+gentype fmin (gentype,  gentype);
+gentype fmin (gentype, gentype);
+gentype fmod (gentype,  gentype);
+gentype hypot (gentype,  gentype);
+gentype ldexp (gentype, gentype);
+gentype lgamma (gentype);
+gentype log (gentype);
+gentype log2 (gentype);
+gentype log10 (gentype);
+gentype log1p (gentype);
+gentype logb (gentype);
+gentype mad (gentype,  gentype,  gentype);
+gentype maxmag (gentype,  gentype);
+gentype minmag (gentype,  gentype);
+gentype nextafter (gentype,  gentype);
+gentype pow (gentype,  gentype);
+gentype powr (gentype,  gentype);
+gentype remainder (gentype,  gentype);
+gentype rint (gentype);
+gentype round (gentype);
+gentype sin (gentype);
+gentype sinh (gentype);
+gentype sinpi (gentype);
+gentype smoothstep (gentype,  gentype,  gentype);
+gentype sqrt (gentype);
+gentype rsqrt (gentype);
+gentype tan (gentype);
+gentype tanh (gentype);
+gentype tanpi (gentype);
+gentype tgamma (gentype);
+gentype trunc (gentype);
