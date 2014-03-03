@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int strcmp(int N, char a[const restrict static N],
+int mstrcmp(int N, char a[const restrict static N],
            char b[const restrict static N])
 {
   for(int i = 0; i < N; i++) {
@@ -29,4 +29,9 @@ int strcmp(int N, char a[const restrict static N],
     }
     return a[i]>b[i]?1:-1;
   }
+  return 0;
 }
+
+/* all {@assert {mstrcmp(2, "aa", "aa") == 0}} */
+/* all {@assert {mstrcmp(2, "ba", "aa") == 1}} */
+/* all {@assert {mstrcmp(2, "aa", "ba") == -1}} */

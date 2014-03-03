@@ -27,3 +27,7 @@ int test(int N, int A[const restrict static N])
     rmax = max(A[i], rmax);
   return rmax;
 }
+
+/* all {int A[5] = {1,2,3,4,5};} */
+/* all {@assert {test(5, A) == 5}} */
+/* all {@assert {test(3, A) == 3}} */

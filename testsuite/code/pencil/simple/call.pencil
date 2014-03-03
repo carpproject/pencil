@@ -30,7 +30,10 @@ void foo(int N[10]){
     N[1] = 2;
 }
 
-void g(){
+int g(){
     struct lala la;
     foo (la.N);
+    return la.N[1];
 }
+
+/* all {@assert {g() == 2}} */

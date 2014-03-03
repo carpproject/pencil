@@ -483,6 +483,15 @@ object ConstantComputer {
     }
   }
 
+  def compute(exp: ScalarComparisonBinaryExpression, op1: BooleanConstant, op2: BooleanConstant): BooleanConstant = {
+    exp match {
+      case _: EqualExpression => BooleanConstant(Some(op1.value == op2.value))
+      case _: NEqualExpression => BooleanConstant(Some(op1.value != op2.value))
+    }
+  }
+
+
+
   /** Fold the scalar boolean expression with constant boolean operands.  */
   def compute(exp: ScalarBooleanBinaryExpression, op1: BooleanConstant, op2: BooleanConstant): BooleanConstant = {
     (exp, op1, op2) match {
@@ -502,6 +511,7 @@ object ConstantComputer {
       case (exp: ScalarMathBinaryExpression, op1: FloatConstant, op2: FloatConstant) => compute(exp, op1, op2)
       case (exp: ScalarComparisonBinaryExpression, op1: IntegerConstant, op2: IntegerConstant) => compute(exp, op1, op2)
       case (exp: ScalarComparisonBinaryExpression, op1: FloatConstant, op2: FloatConstant) => compute(exp, op1, op2)
+      case (exp: ScalarComparisonBinaryExpression, op1: BooleanConstant, op2: BooleanConstant) => compute(exp, op1, op2)
       case (exp: ScalarBooleanBinaryExpression, op1: BooleanConstant, op2: BooleanConstant) => compute(exp, op1, op2)
     }
   }

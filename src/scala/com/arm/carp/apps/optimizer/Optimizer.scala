@@ -22,6 +22,7 @@
 
 package com.arm.carp.apps.optimizer
 
+import com.arm.carp.apps.Version
 import com.arm.carp.pencil.Printer
 import java.io.PrintWriter
 import java.io.File
@@ -42,46 +43,50 @@ object Main {
 
   private val passes = new PassManager
 
-  private def handlePassFlag(raw: String) {
-    val last = (raw takeRight 1)(0)
+  private var debug = false
 
-    /** Try to extract pass index.  */
-    val (idx, flag) = if (Character.isDigit(last))
-      ((last.toInt - '0'.toInt),raw.dropRight(1) )  else (-1, raw)
-
-    val ok = if (flag.startsWith("-fno-")) {
-      passes.enable(flag.stripPrefix("-fno-"), false, idx)
-    } else {
-      passes.enable(flag.stripPrefix("-f"), true, idx)
+  private def handlePassFlag(flag: String) {
+    val ok = flag match {
+      case fno if fno.startsWith("-fno-") => passes.enable(flag.stripPrefix("-fno-"), false)
+      case f if f.startsWith("-f") => passes.enable(flag.stripPrefix("-f"), true)
     }
     if (!ok) {
       complain("Unknown flag " + flag)
     }
   }
 
+  private def handlePassArgument(flag: String, value: String) {
+    val tmp = flag.split(":")
+    if (tmp.size != 2) {
+      complain("Unknown flag" + flag)
+    }
+    val (pass, option) = (tmp(0), tmp(1))
+    passes.registerPassArgument(pass, option, value)
+  }
+
   private def initPasses() {
-    val linearize = new Linearize
-    val cp = new ConstantPropagation
-    val dce = new DeadCodeElimination
-    passes.addPass(linearize)
-    passes.addPass(new FlattenStructParams)
-    passes.addPass(new FlattenLocalStructs)
-    passes.addPass(cp)
-    passes.addPass(dce)
-    passes.addPass(new GCP)
-    passes.addPass(new Inline)
-    passes.addPass(cp)
-    passes.addPass(dce)
-    passes.addPass(linearize)
-    passes.addPass(new LICM)
-    passes.addPass(new SplitFile(outputFileName))     // Should be the last one
+    passes.addPass(Linearize, "linearize0", true)
+    passes.addPass(FlattenStructs, "flatten-structs0", false)
+    passes.addPass(ConstantPropagation, "cp0", true)
+    passes.addPass(DeadCodeElimination, "dce0", true)
+    passes.addPass(GCP, "gcp0", true)
+    passes.addPass(Inline, "inline0", true)
+    passes.addPass(ConstantPropagation, "cp1", true)
+    passes.addPass(LICM, "licm0", false)
+    passes.addPass(DeadCodeElimination, "dce2", true)
+    passes.addPass(Linearize, "linearize2", true)
   }
 
   private def parseCommandLine(args: List[String]): Boolean = {
     args match {
       case Nil => inputFileName.isDefined
+      case "-d" :: rest =>
+        debug = true
+        parseCommandLine(rest)
       case "-h" :: rest =>
         sayHelp(); false
+      case "--version" :: rest =>
+        sayVersion(); false
       case "-o" :: x :: rest =>
         outputFileName = Some(x)
         parseCommandLine(rest)
@@ -91,24 +96,39 @@ object Main {
       case "-fno-all" :: rest =>
         passes.enable(false)
         parseCommandLine(rest)
-      case x :: rest if x.startsWith("-f") =>
-        handlePassFlag(x)
-        parseCommandLine(rest)
       case "-dump-passes" :: rest =>
         passes.dump
+        parseCommandLine(rest)
+      case f :: v :: rest if f.startsWith("-p") =>
+        handlePassArgument(f.stripPrefix("-p"), v)
+        parseCommandLine(rest)
+      case x :: rest if x.startsWith("-f") =>
+        handlePassFlag(x)
         parseCommandLine(rest)
       case x :: rest =>
         inputFileName = Some(x)
         parseCommandLine(rest)
+      case flag =>
+        complain("Unknown flag " + flag)
+        false
     }
   }
 
   private def sayHelp() {
-    System.err.println("Usage: input-file [-o output-file] [-f[no-]all] [-dump-passes] [passes options]")
+    System.err.println("Usage: input-file [--version] [-o output-file] [-f[no-]all] [-dump-passes] [passes options]")
     System.err.println("       passes can enabled/disabled with -f[-no]<PASS NAME>[idx] option")
     System.err.println("       use idx after pass name to disable specific occurence of pass")
     System.err.println("       Example: -fno-cp0 would disable the first occurance of the CP pass")
-    System.err.println("       use -dump-passes to get the list of all passes")
+    System.err.println("       -pflatten-structs:local yes")
+    System.err.println("       to enable local structs flattening")
+    System.err.println("       Some passes support additional arguments:")
+    System.err.println("       use -dump-passes to get the list of all passes and arguments")
+    System.exit(0)
+  }
+
+  private def sayVersion() {
+    System.err.println("PENCIL Optimizer")
+    System.err.println(Version.getFullVersionInfo)
     System.exit(0)
   }
 
@@ -124,7 +144,7 @@ object Main {
     }
 
     val frontend = new PencilFrontEnd
-    val pencil = frontend.parse(inputFileName.get)
+    val pencil = frontend.parse(inputFileName.get, debug)
 
     if (pencil.isEmpty) {
       System.exit(-1)

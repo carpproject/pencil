@@ -22,8 +22,11 @@
 
 int i()
 {
-    long k = 1 + 2;
-    int p = 3 * 19;
-    int S = k + p + sizeof(int);
+    long k = 1 + 2; //3
+    int p = 3 * 19; //57
+    int S = k + p + sizeof(int); //60 + sizeof(int)
     return S / sizeof(float);
 }
+
+/* all {@assert {i() == ((60 + sizeof(int)) / sizeof(float))}} */
+/* all {@assert {i() == 16}} */

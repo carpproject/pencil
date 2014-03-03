@@ -25,6 +25,7 @@ SCALADOC=scaladoc
 
 export SCALA_HOME=@SCALA_HOME@
 export ANTLR_HOME=@ANTLR_HOME@
+export FILE_CHECK_TOOL=@FILE_CHECK_TOOL@
 export CLASSPATH=${ANTLR_HOME}/ant-antlr3.jar:${ANTLR_HOME}/antlr3.jar
 
 all: ${ALL}

@@ -30,3 +30,12 @@ void intrinsic_opt (int a[1], int b[1], double c[1], double d[1], int e[1])
   d[0] = min(-42.1, -321.7);
   e[0] = max(12, min(42, 10+13));
 }
+
+/* all {int a, b, e;} */
+/* all {double c, d;} */
+/* all {intrinsic_opt(&a, &b, &c, &d, &e);} */
+/* all {@assert {a == 4}} */
+/* all {@assert {b == 1}} */
+/* all {@assert {c == 654.321}} */
+/* all {@assert {d == -321.7}} */
+/* all {@assert {e == 23}} */

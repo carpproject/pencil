@@ -28,7 +28,7 @@ import com.arm.carp.pencil.ReachingDefinitions
 import com.arm.carp.pencil.DefineSet
 
 /** Perform constant propogation and constant folding. */
-class ConstantPropagation extends Pass("cp", true) {
+object ConstantPropagation extends Pass("cp") {
 
   type RenameMap = HashMap[AssignmentOperation, ScalarVariableDef]
   type CstMap = HashMap[AssignmentOperation, ScalarExpression with Constant]
@@ -194,8 +194,8 @@ class ConstantPropagation extends Pass("cp", true) {
     super.walkFunction(f)
   }
 
-  override def execute(in: Program) = {
+  override def walkProgram(in: Program) = {
     ReachingDefinitions.compute(in)
-    walkProgram(in)
+    super.walkProgram(in)
   }
 }

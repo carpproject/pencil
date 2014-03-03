@@ -24,13 +24,26 @@ void foo(int A[10], int N)
 {
     for(int i = 0; i < 100; i++)
     {
-        int k = N * 2;
-        int p = k * i;
-        int s = k * 4;
+        int k = N * 2;//198
+        int p = k * i;//0
+        int s = k * 4;//792
         for (int j = 0; j < 100; j++) {
-            int tmp = (k + p) + i;
-            A[i] = k + j + (s + i) + p + tmp;
+            int tmp = (k + p) + i;//(j==99)
+            A[i] = k + j + (s + i) + p + tmp; ///198 + 99 + 792 + 0 + 0 + 198
         }
         break;
     }
 }
+
+/* all {int A[10] = {1,2,3,4,5,6,7,8,9,10};} */
+/* all {foo(A, 99);} */
+/* all {@assert {A[0] == (198 + 99 + 792 + 0 + 0 + 198)}} */
+/* all {@assert {A[1] == 2}} */
+/* all {@assert {A[2] == 3}} */
+/* optimizer {@require-option {-flicm}} */
+/* optimizer {@check {CHECK: loop_invariant}} */
+/* optimizer {@check {CHECK: for}} */
+/* optimizer {@check {CHECK-NOT: N}} */
+/* optimizer {@check {CHECK: loop_invariant}} */
+/* optimizer {@check {CHECK: for}} */
+/* optimizer {@check {CHECK-NOT: N}} */

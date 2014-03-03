@@ -10,3 +10,5 @@ DBLAT*
 test*blas*
 blastest/output/
 code/pencil/*/*.c
+code/pencil/*/*.check
+code/pencil/*/*.run

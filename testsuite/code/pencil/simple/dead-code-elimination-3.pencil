@@ -26,3 +26,5 @@ int foo()
   i = i * 2;
   return 2;
 }
+
+/* all {@assert {foo() == 2}} */

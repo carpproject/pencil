@@ -30,7 +30,7 @@ Building process
 Summary:
 
 autoconf
-./configure --with-scala=$SCALA_HOME --with-antlr3=$ANTLR_HOME
+./configure --with-scala=$SCALA_HOME --with-antlr3=$ANTLR_HOME [--with-filecheck=$FILECHECK_HOME]
 make
 
 For more information on what $SCALA_HOME and $ANTLR_HOME should point to,
@@ -59,6 +59,11 @@ Build requirements
      typesafe-config.jar
   * Antlr3 tools are accessible via CLASSPATH:
     export CLASSPATH=$ANTLR_HOME/ant-antlr3.jar:$ANTLR_HOME/antlr3.jar
+  * [Optional] FileCheck tool from LLVM testsuite:
+    % ls $FILECHECK_HOME/FileCheck
+    FileCheck
+    If present this tool will be used to perform more accurate testing
+    of the PENCIL tools.
 
 This build has been tested on the following configuration:
  % scalac -version

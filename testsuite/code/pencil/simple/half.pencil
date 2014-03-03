@@ -22,5 +22,5 @@
 
 half foo(float a, float b)
 {
-  return (half)a / b;
+  return (half )a / b;
 }

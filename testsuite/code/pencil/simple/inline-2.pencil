@@ -29,3 +29,8 @@ int bar()
 {
     foo();
 }
+
+/* optimizer {@require-option {-finline}} */
+/* optimizer {@check {CHECK: bar}} */
+/* optimizer {@check {CHECK: bar}} */
+/* optimizer {@check {CHECK-NOT: foo}} */

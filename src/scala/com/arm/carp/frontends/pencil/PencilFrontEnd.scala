@@ -40,7 +40,7 @@ import java.io.File
   */
 
 class PencilFrontEnd {
-  def parse(file: String): Option[Program] = {
+  def parse(file: String, debug: Boolean): Option[Program] = {
     if (!(new File(file)).exists()) {
       System.err.println("File " + file + " not found")
       return None
@@ -52,7 +52,7 @@ class PencilFrontEnd {
     val pencil = parser.program()
     if (parser.isCorrect()) {
       val transformer = new Transformer(file)
-      transformer.transformProgram(pencil)
+      transformer.transformProgram(pencil, debug)
     } else {
       None
     }

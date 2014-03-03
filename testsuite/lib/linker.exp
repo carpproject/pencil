@@ -20,5 +20,5 @@
 
 source lib/common.exp
 proc test_pencil {file} {
-  test_tool "../linker.jar" $file $file
+  test_tool "linker" $file
 }

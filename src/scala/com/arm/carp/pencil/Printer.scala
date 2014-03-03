@@ -261,18 +261,21 @@ class Printer extends Assertable {
   }
 
   private def process(in: Operation): Unit = {
-    val label = glabels.get(in)
-    label match {
-      case Some(id) => buff.append("l" + id + ":")
-      case None =>
+    if (in.scop) {
+      buff.append("\n#pragma scop\n")
     }
     in.access match {
       case Some(body) =>
         in_macro = true
-        buff.append("#pragma pencil access")
+        buff.append("\n#pragma pencil access")
         process(body)
         in_macro = false
         buff.append("\n")
+      case None =>
+    }
+    val label = glabels.get(in)
+    label match {
+      case Some(id) => buff.append("l" + id + ":")
       case None =>
     }
     in match {
@@ -293,24 +296,8 @@ class Printer extends Assertable {
         buff.append(");")
       }
     }
-  }
-
-  private def declareArrayVar(name: String, base: Type, range: ScalarExpression, lbuff: StringBuilder, qualifier: String): Unit = {
-    lbuff.append('[')
-    lbuff.append(qualifier)
-    range match {
-      case cst: IntegerConstant => lbuff.append(cst.value)
-      case exp: ScalarExpression =>
-        val tmp = buff
-        buff = lbuff
-        process(exp)
-        buff = tmp
-      case _ => ice(range, "Invalid array size")
-    }
-    lbuff.append(']')
-    base match {
-      case ArrayType(nbase, nrange) => declareArrayVar(name, nbase, nrange, lbuff, "")
-      case _ => declareVariable(name, base, ""); buff.append(lbuff)
+    if (in.scop) {
+      buff.append("\n#pragma endscop\n")
     }
   }
 
@@ -338,13 +325,70 @@ class Printer extends Assertable {
     }
   }
 
-  private def declareVariable(name: String, _type: Type, qualifier: String): Unit = {
-    _type match {
-      case ArrayType(base, range) =>
-        declareArrayVar(name, base, range, new StringBuilder, qualifier)
-      case _ => process(_type); buff.append(name)
+  /* prints the part '[scalar-expression]'
+  **/
+  private def declareArrayVar( base: Type, range: ScalarExpression, lbuff: StringBuilder, qualifier: String): Unit = {
+    lbuff.append('[')
+    lbuff.append(qualifier)
+    range match {
+      case cst: IntegerConstant => lbuff.append(cst.value)
+      case exp: ScalarExpression =>
+        val tmp = buff
+        buff = lbuff
+        process(exp)
+        buff = tmp
+      case _ => ice(range, "Invalid array size")
+    }
+    lbuff.append(']')
+    base match {
+      case ArrayType(nbase, nrange) => declareArrayVar( nbase, nrange, lbuff, "")
+      case _ => buildVariable(base, "", lbuff );
     }
   }
+
+  /** Casts 'var as '*var' and 'var[.]' as '(*var)[.]'
+    */
+   private def declarePointerVar( _type: Type, lbuff: StringBuilder ): Unit= {
+     _type match{
+       case ArrayType(base, range) => {
+         lbuff.insert(0, "( *"); lbuff.append(")")                        /* wrap the pointer as (*lbuff) */
+         declareArrayVar(base, range, lbuff, "")
+       }
+       case _ => {
+         lbuff.insert(0, "*")
+         buildVariable( _type, "", lbuff)
+       }
+     }
+   }
+
+
+
+  /** Follows recursive style of variable construction to support complex pointer type
+   */
+  private def buildVariable( _type: Type, qualifier: String, lbuff : StringBuilder ): Unit  = {
+    _type match {
+      case ArrayType(base, range) =>
+         declareArrayVar(base, range, lbuff, qualifier)
+      case PointerType(base) =>
+         declarePointerVar( base, lbuff )
+      case _ => {
+         process( _type);                              /*primitive-struct which appears leftmost in buff itself*/
+      }
+    }
+  }
+
+
+
+  /** The base type is printed by 'process( _type)' directly into buff, when all array and pointer wrappers are unfolded by
+    * buildVariable. Here we start lbuff with variable name and print the array, '*', cast parts around it.
+    * As last step, the lbuff is appended to the buff which already has the base-type prefixed to it.
+    */
+  private def declareVariable(name: String, _type: Type, qualifier: String): Unit = {
+    var lbuff = (new StringBuilder).append(name)
+    buildVariable( _type, qualifier, lbuff )             /*build rest around name e.g. (*name[10])[20] */
+    buff.append( lbuff )
+  }
+
 
   private def processDeclaration(variable: Variable) = {
     declareVariable(getVarName(variable), variable.expType, "")
@@ -376,6 +420,7 @@ class Printer extends Assertable {
   }
 
   private def processFunctionDeclaration(in: Function) = {
+    if (in.local) buff.append("static ")
     process(in.retType)
     buff.append(getFuncName(in))
     buff.append(" (")

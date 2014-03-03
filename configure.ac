@@ -33,6 +33,23 @@ if test "x$scala_found" != "xyes"; then
   AC_MSG_ERROR([could not find scala executable])
 fi
 
+dnl FileCheck installation
+AC_SUBST(FILE_CHECK_TOOL)
+AC_ARG_WITH([filecheck],
+            [AS_HELP_STRING([--with-filecheck-home=path],[Directory containing FileCheck])],
+            [FILE_CHECK_HOME="$with_filecheck"],[])
+AC_CHECK_PROG([filecheck_found], ["FileCheck"], [yes], [no], ["$FILE_CHECK_HOME:$PATH"])
+if test "x$filecheck_found" != "xyes"; then
+  if test "x$FILE_CHECK_HOME" != "x"; then
+      AC_MSG_ERROR([could not find FileCheck executable])
+  else
+      AC_MSG_WARN([FileCheck is disabled (use --with-filecheck-home=path to enable)])
+      FILE_CHECK_TOOL=
+  fi
+else
+  FILE_CHECK_TOOL=`PATH=$PATH:$FILE_CHECK_HOME which FileCheck`
+fi
+
 dnl ANTLR jars
 AC_SUBST(ANTLR_HOME)
 AC_ARG_WITH([antlr3],

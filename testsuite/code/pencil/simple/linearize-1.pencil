@@ -23,8 +23,18 @@
 int f (int i)
 {
   int i = 1;
+  {
   i++;
-  i++;
-  i++;
+  }
+  {
+  i+=123;
+  }
   return i;
 }
+
+/* all {@assert {f(1)  == 125}} */
+/* all {@assert {f(0)  == 125}} */
+/* optimizer {@require-option {-flinearize}} */
+/* optimizer {@require-option {-fno-cp}} */
+/* optimizer {@check {CHECK: +1}} */
+/* optimizer {@check {CHECK-NEXT: 123}} */

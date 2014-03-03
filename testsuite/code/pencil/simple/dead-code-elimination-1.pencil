@@ -20,14 +20,18 @@
  * THE SOFTWARE.
  */
 
+/* optimizer {@require-option {-fdce}} */
+/* all {int A[12];} */
 int f (int i)
 {
     int i = 1;
     if (false)
     {
-        int j;
-        j = 12;
-        i = j;
+        int dead_code;
+        int j = 12;
+        dead_code = j;
     }
     return i;
 }
+/* all {@assert {f(1) == 1}} */
+/* optimizer {@check {CHECK-NOT: dead_code}} */

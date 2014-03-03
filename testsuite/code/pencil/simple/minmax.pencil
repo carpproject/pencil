@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int min(int A[10])
+int amin(int A[10])
 {
   int i = A[0];
   for (int j = 0; j < 10; j++) {
@@ -30,7 +30,7 @@ int min(int A[10])
 }
 
 
-int max(int A[10])
+int amax(int A[10])
 {
   int i = A[0];
   for (int j = 0; j < 10; j++) {
@@ -38,3 +38,7 @@ int max(int A[10])
   }
   return i;
 }
+
+/* all {int A[10] = {1,2,15,4,5,6,12,8,9,10};} */
+/* all {@assert {amin(A) == 1}} */
+/* all {@assert {amax(A) == 15}} */

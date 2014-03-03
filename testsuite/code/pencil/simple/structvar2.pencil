@@ -29,6 +29,9 @@ double noop(double in) {
   return in;
 }
 
+/* all {@assert {noop(1.0) == 1.0}} */
+/* all {@assert {noop(2.0) == 2.0}} */
+
 void copy(struct ComplexDouble in, struct ComplexDouble out[1]) {
   out[0] = in;
 }

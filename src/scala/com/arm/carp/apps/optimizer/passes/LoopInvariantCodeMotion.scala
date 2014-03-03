@@ -25,6 +25,7 @@ package com.arm.carp.apps.optimizer.passes
 import com.arm.carp.pencil._
 import com.arm.carp.pencil.ParentComputer
 import scala.collection.mutable.Stack
+import scala.collection.mutable.ListBuffer
 
 /**
  * This class implements basic loop invariant code motion.
@@ -33,10 +34,31 @@ import scala.collection.mutable.Stack
  * outside the loop.
  */
 
-class LICM extends Pass("licm", true) {
-  val config = WalkerConfig.minimal
+object LICM extends Pass("licm") {
+  val config = WalkerConfig.expressions
 
-  val loops = Stack[ForOperation]()
+  private val loops = Stack[ForOperation]()
+
+  private val invariants = Stack[ListBuffer[AssignmentOperation]]()
+
+  private var idxExpressionCounter: Int = 0
+
+  private def addInvariant(op: AssignmentOperation) = {
+    op.parent = loops.top.parent
+    invariants.top.append(op)
+  }
+
+  private def getInvariants() = invariants.top.toSeq
+
+  private def enterFor (loop: ForOperation) = {
+    invariants.push(ListBuffer[AssignmentOperation]())
+    loops.push(loop)
+  }
+
+  private def leaveFor = {
+    invariants.pop
+    loops.pop
+  }
 
   case class InvariantInfo(val invariant: Boolean) extends ExpressionPassInfo with OperationPassInfo
 
@@ -60,7 +82,7 @@ class LICM extends Pass("licm", true) {
       case Some(defs:DefineSet) =>
         if (variable.variable.iter) {
           assert(defs.data.isEmpty, defs.data, "unexpected def set")
-          isOuterLoopIterator(variable.variable)
+          idxExpressionCounter == 0 && isOuterLoopIterator(variable.variable)
         } else {
           defs.data.forall(isOutsideBlock(_, block))
         }
@@ -68,9 +90,15 @@ class LICM extends Pass("licm", true) {
     }
   }
 
+  override def walkIterationVariable(in: ScalarVariableRef) = {
+    (in, None)
+  }
+
   override def walkScalarVariable(in: ScalarVariableRef) = {
-    val invariant = isInvariantInBlock(in, loops.top.ops)
-    in.info = Some(new InvariantInfo(invariant))
+    if (!loops.isEmpty) {
+      val invariant = isInvariantInBlock(in, loops.top.ops)
+      in.info = Some(new InvariantInfo(invariant))
+    }
     super.walkScalarVariable(in)
   }
 
@@ -110,41 +138,16 @@ class LICM extends Pass("licm", true) {
     (asInvariantExp(in.update(op._1), isInvariant(op._1)), op._2)
   }
 
-  private def canBeMoved(variable: ScalarVariableRef, self: AssignmentOperation, block: BlockOperation) = {
-    variable.info match {
-      case Some(defs:DefineSet) => defs.data.filter(_ != self).forall(isOutsideBlock(_, block))
+  private def canBeMoved(variable: ScalarVariableRef, self: AssignmentOperation) = {
+    !loops.isEmpty && (variable.info match {
+      case Some(defs:DefineSet) => defs.data.filter(_ != self).forall(isOutsideBlock(_, loops.top.ops))
       case _ => ice(variable, "reaching definition information expected")
-    }
+    })
   }
 
-  private def withUpdatedRvalue(mov: AssignmentOperation, upd: AnnotatedScalarExpression) = {
-    mov.rvalue = upd._1
-    (Some(mov), upd._2)
-  }
-
-  private def moveUp(mov: AssignmentOperation, block: BlockOperation) = {
-    mov.parent = block.parent
-    (None, Some(mov))
-  }
-
-  private def tryMoveAssignment(mov: AssignmentOperation, block: BlockOperation) = {
-    val processed = walkScalarExpression(mov.rvalue)
-    if (isInvariant(processed._1)) {
-      mov.lvalue match {
-        case variable:ScalarVariableRef if canBeMoved(variable, mov, block)
-        => moveUp(mov, block)
-        case _ => withUpdatedRvalue(mov, liftInvariants(processed))
-      }
-    } else {
-      withUpdatedRvalue(mov, processed)
-    }
-  }
-
-  private def tryMove(in: Operation, block: BlockOperation) = {
-    in match {
-      case mov: AssignmentOperation => tryMoveAssignment(mov, block)
-      case _ => (Some(in), None)
-    }
+  private def withUpdatedRvalue(mov: AssignmentOperation, upd: ScalarExpression) = {
+    mov.rvalue = upd
+    mov
   }
 
   private def isInvariant (in: ScalarExpression*) = {
@@ -154,34 +157,63 @@ class LICM extends Pass("licm", true) {
     })
   }
 
-  private def liftInvariants(in: AnnotatedScalarExpression) = {
-    val code = in._2
-    val exp = in._1
+  private def liftInvariants(exp: ScalarExpression) = {
     exp match {
-      case _:ScalarExpression with Constant | _:ScalarVariableRef => in
+      case _:ScalarExpression with Constant | _:ScalarVariableRef => exp
       case _ if isInvariant(exp) => {
-        val tmp = ScalarVariableDef(in._1.expType.updateConst(false), "loop_invariant", None)
-        (asInvariantExp(new ScalarVariableRef(tmp)),
-         make (code, Some(new AssignmentOperation(new ScalarVariableRef(tmp), in._1))))
+        val tmp = ScalarVariableDef(exp.expType.updateConst(false), "loop_invariant", None)
+        addInvariant(new AssignmentOperation(new ScalarVariableRef(tmp), exp))
+        asInvariantExp(new ScalarVariableRef(tmp))
         }
-      case _ => in
+      case _ => exp
     }
   }
 
   override def walkScalarExpression(in: ScalarExpression) = {
-    liftInvariants(super.walkScalarExpression(in))
+    (liftInvariants(super.walkScalarExpression(in)._1), None)
   }
 
+  override def walkScalarIdxExpression (in: ScalarIdxExpression) = {
+    idxExpressionCounter += 1
+    val res = super.walkScalarIdxExpression(in)
+    idxExpressionCounter -= 1
+    res
+  }
+
+  override def walkArrayIdxExpression (in: ArrayIdxExpression) = {
+    idxExpressionCounter += 1
+    val res = super.walkArrayIdxExpression(in)
+    idxExpressionCounter -= 1
+    res
+  }
+
+  override def walkAssignment(in: AssignmentOperation) = {
+    val rvalue = walkScalarExpression(in.rvalue)._1
+    in.rvalue = rvalue
+    in.lvalue match {
+      case variable:ScalarVariableRef if (isInvariant(rvalue) && canBeMoved(variable, in)) => {
+        addInvariant(in)
+        None
+      }
+      case variable:ScalarVariableRef => Some(in)
+      case _ => {
+        in.lvalue = walkLValueExpression(in.lvalue)._1
+        Some(in)
+      }
+    }
+  }
+
+  override def walkRange(in: Range) = (in, None)
+
   override def walkFor(in: ForOperation) = {
-    loops.push(in)
+    enterFor(in)
     val res = super.walkFor(in)
-    val block = in.ops
-
-    val processed = block.ops.map(tryMove(_, block))
-
-    in.ops.ops = processed.map(_._1).flatten
-    loops.pop
-    Some(new BlockOperation(List(new BlockOperation(processed.map(_._2).flatten), in)))
+    val invariants = getInvariants
+    if (invariants.size > 0) {
+      set_changed
+    }
+    leaveFor
+    make (Some(new BlockOperation(invariants)), res)
   }
 
   override def walkFunction(in: Function) = {

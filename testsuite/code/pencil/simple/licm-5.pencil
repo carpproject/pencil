@@ -25,10 +25,17 @@ int foo(int i)
     int S = i + 1;
     int B = i - 1;
     int r = 0;
-    for (int k = 0; k < 1000; ++k)
+    for (int k = 0; k < 2; ++k)
     {
         int s = (i < 10) ? (S + 10):(B - 20);
         r += s;
     }
     return r;
 }
+/* all {@assert {foo(1) == 24}} */
+/* all {@assert {foo(10) == -22}} */
+/* optimizer {@require-option {-flicm}} */
+/* optimizer {@check {CHECK: loop_invariant}} */
+/* optimizer {@check {CHECK: for}} */
+/* optimizer {@check {CHECK-NOT: S}} */
+/* optimizer {@check {CHECK-NOT: B}} */

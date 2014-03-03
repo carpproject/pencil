@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int bar();//@Error
+int bar(); /* all {@error} */
 
 int foo(int i, int j)
 {

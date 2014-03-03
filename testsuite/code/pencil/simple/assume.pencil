@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-void foo(int M, int N, int S, double D[const restrict static S]) {
+void foo(int M, int N, int S, int D[const restrict static S]) {
   __pencil_assume(M >= N);
   __pencil_use(D);
   for(int i = 0; i < N; i++)
@@ -28,3 +28,9 @@ void foo(int M, int N, int S, double D[const restrict static S]) {
       D[i] += D[i + M];
     }
 }
+/* all {int D[4] = {1,1,1,1};} */
+/* all {foo(2,2,4,D);} */
+/* all {@assert {D[0] = 2}} */
+/* all {@assert {D[1] = 2}} */
+/* all {@assert {D[2] = 1}} */
+/* all {@assert {D[3] = 1}} */

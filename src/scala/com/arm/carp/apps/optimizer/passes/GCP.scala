@@ -24,11 +24,12 @@ package com.arm.carp.apps.optimizer.passes
 
 import com.arm.carp.pencil._
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.HashMap
 
 /** Perform global constant propagation. */
-class GCP extends Pass("gcp", true) {
+object GCP extends Pass("gcp") {
 
-  private val clones = new ListBuffer[Function]()
+  private val clones = ListBuffer[Function]()
 
   /**
     * Create new version of the function, replacing constant arguments by
@@ -45,22 +46,28 @@ class GCP extends Pass("gcp", true) {
     *   ....
     * }
     */
-  private class Propogater(val args: Seq[Expression]) extends FunctionCloner {
+  private class Propagator(val args: Seq[Expression]) extends FunctionCloner {
+
+    private val scalars = HashMap[ScalarVariableDef, ScalarExpression]()
 
     override def walkFunction(in: Function) = {
-      val init = ListBuffer[Operation]()
       val params = ListBuffer[Variable]()
       (in.params, args).zipped.foreach((p, a) => {
         (p, a) match {
-          case (p: ScalarVariableDef, cst: ScalarExpression with Constant) =>
-            init += new AssignmentOperation(new ScalarVariableRef(p), convertScalar(cst, p.expType))
+          case (p: ScalarVariableDef, cst: ScalarExpression with Constant) => scalars.put (p, cst)
           case _ => params += p
         }
       })
       in.params = walkFunctionArguments(params)
-      init += in.ops.get
-      in.ops = walkFunctionBody(Some(new BlockOperation(init.toList)))
+      in.ops = walkFunctionBody(in.ops)
       Some(in)
+    }
+
+    override def walkScalarVariable (in: ScalarVariableRef) = {
+      scalars.get(in.variable) match {
+        case None => super.walkScalarVariable(in)
+        case Some(cst) => (convertScalar(cst, in.expType), None)
+      }
     }
   }
 
@@ -73,14 +80,16 @@ class GCP extends Pass("gcp", true) {
     if (args.size == nargs.size || in.func.ops.isEmpty) {
       (in.copy(args = args), None)
     } else {
-      val actor = new Propogater(args)
+      val actor = new Propagator(args)
       val copy = actor.cloneFunction(in.func, in.func.name + "_cloned")
       clones += copy
+      set_changed
       (new CallExpression(copy, nargs), None)
     }
   }
 
   override def walkFunctions(in: Traversable[Function]) = {
+    clones.clear
     super.walkFunctions(in) ++ clones.toList
   }
 }

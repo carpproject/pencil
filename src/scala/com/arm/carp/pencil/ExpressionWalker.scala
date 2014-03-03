@@ -145,7 +145,14 @@ trait ExpressionWalker extends CommonOps {
   def walkArrayVariableInt(in: ArrayVariable): AnnotatedArrayExpression = {
     Checkable.ice(in, "array variable without references are forbidden by default")
   }
-
+  def walkIterationVariable(in: ScalarVariableRef): Annotated[ScalarVariableRef] = {
+    walkScalarVariable(in) match {
+      case (iter:ScalarVariableRef, tail) =>
+        iter.variable.iter = true
+        (iter, tail)
+      case err => Checkable.ice(err, "invalid iteration variable update")
+    }
+  }
 
   def walkScalarExpression(in: ScalarExpression): AnnotatedScalarExpression = {
     in match {

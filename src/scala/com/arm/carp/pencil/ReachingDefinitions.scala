@@ -107,11 +107,11 @@ object ReachingDefinitions {
 
   private def computeForStructAssignment(struct: ScalarStructSubscription, in: AssignmentOperation, defines: DefTable): DefTable = {
     computeForExpression(in.rvalue, defines)
+    computeForExpression(in.lvalue, defines)
     getBaseVariable(struct) match {
       case Some(variable) =>
         new DefTable(Map(), Map(variable.variable -> Set(in)))
       case None =>
-        computeForExpression(in.lvalue, defines)
         in.info = None
         new DefTable(Map(), Map())
     }
@@ -138,10 +138,11 @@ object ReachingDefinitions {
   }
 
   private def computeForFor(in: ForOperation, defines: DefTable): DefTable = {
-    computeForExpression(in.range.low, defines)
-    computeForExpression(in.range.upper, defines)
     val base = computeForBlock(in.ops, defines)
-    val main = computeForBlock(in.ops, new DefTable(defines.defs, join(defines.mdefs, base.defs, base.mdefs)))
+    val updated = new DefTable(defines.defs, join(defines.mdefs, base.defs, base.mdefs))
+    computeForExpression(in.range.low, updated)
+    computeForExpression(in.range.upper, updated)
+    val main = computeForBlock(in.ops, updated)
     new DefTable(Map(), join(main.defs, main.mdefs))
   }
 
@@ -156,9 +157,10 @@ object ReachingDefinitions {
   }
 
   private def computeForWhile(in: WhileOperation, defines: DefTable): DefTable = {
-    computeForExpression(in.guard, defines)
     val base = computeForBlock(in.ops, defines)
-    val main = computeForBlock(in.ops, joinTables(defines, base))
+    val updated = joinTables(defines, base)
+    computeForExpression(in.guard, updated)
+    val main = computeForBlock(in.ops, updated)
     new DefTable(Map(), join(main.defs, main.mdefs))
   }
 

@@ -39,7 +39,7 @@ sub java
 my %generators = (scala => \&scala,
                   java => \&java);
 
-($#ARGV == 2) || die "Three arguments exprected";
+($#ARGV == 2) || die "Three arguments expected";
 
 my $input = @ARGV[0];
 my $output = $ARGV[1];

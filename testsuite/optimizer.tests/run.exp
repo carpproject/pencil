@@ -20,6 +20,10 @@
 
 set timeout 10
 
-foreach test [glob "code/pencil/*/*.pencil"] {
-    test_pencil $test
+if {[info exists ::env(OPTIMIZER_TEST)]} {
+    test_pencil $::env(OPTIMIZER_TEST)
+} else {
+    foreach test [glob "code/pencil/*/*.pencil"] {
+        test_pencil $test
+    }
 }

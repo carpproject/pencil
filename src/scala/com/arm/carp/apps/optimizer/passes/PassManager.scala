@@ -25,6 +25,8 @@ package com.arm.carp.apps.optimizer.passes
 import com.arm.carp.pencil.Program
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
+import scala.collection.mutable.HashSet
+import com.arm.carp.pencil.Checkable
 
 /**
   * Maintains an ordered sequence of passes.
@@ -33,13 +35,17 @@ import scala.collection.mutable.Map
   */
 class PassManager {
 
-  private var passes: ListBuffer[(Pass, Boolean)] = new ListBuffer
+  class PassRef (val pass: Pass, var enabled: Boolean, val flag: String, val args: PassArgumentStorage)
 
-  private val index = Map[String, List[Int]]()
+  private val passes: ListBuffer[PassRef] = new ListBuffer
+
+  private val global_index = HashSet[String]()
+
+  private val index = Map[String, Int]()
 
   private def enableInt(idx: Int, enabled: Boolean) = {
     val orig = passes(idx)
-    passes(idx) = (orig._1, enabled)
+    passes(idx).enabled = enabled
   }
 
   /**
@@ -58,50 +64,78 @@ class PassManager {
     * @param name name of the pass
     * @param enabled <code>true</code> - enable the pass,
     *                <code>false</code> - disable the pass
-    * @param idx index of the individual all (-1 for all
-    *        instances  of the pass)
     */
-  def enable(name: String, enabled: Boolean, idx: Int) = {
+  def enable(name: String, enabled: Boolean) = {
     index.get(name) match {
-      case None => false
-      case Some(list) =>
-        if (idx >= list.length) {
-          false
-        } else {
-          if (idx == -1) {
-            list.foreach(enableInt(_, enabled))
-          } else {
-            enableInt(list(list.length - idx - 1), enabled)
-          }
-          true
-        }
+      case Some(idx) =>
+        enableInt(idx, enabled)
+        true
+      case None if !global_index.contains(name) => false
+      case None => {
+        passes foreach(p => if (p.pass.name == name) p.enabled = enabled)
+        true
+      }
     }
   }
 
-  private def getEnabledPasses () = passes.filter(_._2).map(_._1)
+  private def getClassName(in: Any) = {
+    in match {
+      case _:Boolean => "Boolean[yes/no]"
+      case _:String => "String"
+      case _:Integer => "Integer"
+      case _ => "Unknown"
+    }
+  }
+
+  private def getValue(in: Any) = {
+    in match {
+      case b:Boolean => if(b) "yes" else "no"
+      case s:String => s
+      case i:Integer => i.toString
+      case _ => "Unknown"
+    }
+
+  }
 
   /** Print all available passes.  */
   def dump() {
     println("Optimization passes {")
-    passes.foreach(pass => println((if (pass._2) " Enabled: " else "Disabled: ") + pass._1.flag))
+    passes.foreach(pass => {
+        println((if (pass.enabled) " Enabled: " else "Disabled: ") + pass.flag + "(" + pass.pass.name + ")")
+        pass.args.list.foreach(arg => println("   argument:" + arg._1 + " type:" + getClassName(arg._2) + " value:" + getValue(arg._2)))
+      })
     println("}")
   }
 
-  private def updateIndex(idx: Int, flag: String) = {
+  /** Add new pass to the end of the sequence.  */
+  def addPass(pass: Pass, flag: String, default: Boolean) {
+    passes.append(new PassRef(pass, default, flag, pass.getArgsTemplate))
+    global_index += pass.name
     index.get(flag) match {
-      case None => index.update(flag, List(idx))
-      case Some(list) => index.update(flag, idx :: list)
+      case Some(_) => Checkable.ice(flag, "Redefinition of the flag")
+      case None => index.put(flag, passes.length - 1)
     }
   }
 
-  /** Add new pass to the end of the sequence.  */
-  def addPass(pass: Pass) {
-    passes.append((pass, pass.enabled))
-    updateIndex(passes.length - 1, pass.flag)
+  private def setArgumentForPass (args: PassArgumentStorage, arg: String, value: String) = {
+    args.set(arg, value)
+  }
+
+  def registerPassArgument(pass: String, arg: String, value: String): Boolean = {
+    index.get(pass) match {
+      case Some(idx) => setArgumentForPass(passes(idx).args, arg, value)
+      case None if !global_index.contains(pass) => false
+      case None => passes forall(p =>
+        if (p.pass.name == pass)
+          setArgumentForPass(p.args, arg, value)
+        else
+          true
+      )
+    }
   }
 
   /** Run all enabled pass on the supplied program.  */
   def run(program: Program): Program = {
-    getEnabledPasses.foldLeft(program)((prog, pass) => pass.run(prog))
+    passes.filter(_.enabled).foldLeft(program)((prog, ref) => ref.pass.run(prog, ref.args))
   }
 }

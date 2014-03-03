@@ -31,3 +31,5 @@ int f (int s)
     int k = i + 1;
     return i + k;
 }
+/* all {@assert {f(1) == 25}} */
+/* all {@assert {f(121) == 25}} */

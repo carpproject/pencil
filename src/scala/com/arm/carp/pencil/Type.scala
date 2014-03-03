@@ -103,6 +103,29 @@ case class BooleanType(uconst: Boolean) extends ScalarType(uconst) {
 }
 
 /**
+ * Pointer type representation.
+ *
+ * PENCIL pointer cannot be converted to any other type
+ * and cannot  be used as anywhere currently (future extension)
+ *
+ */
+case class PointerType(base: Type) extends ScalarType(false) {
+
+  override def convertible(t: Type): Boolean =  t match {
+      case  PointerType( _ ) => true
+      case _                => false
+  }
+
+  override def compatible(t: Type): Boolean = t match {
+      case PointerType( _ ) => true
+      case _                => false
+  }
+
+  def updateConst(in: Boolean) = this
+}
+
+
+/**
  * Void type representation.
  *
  * Void type can only be used as a function return type.

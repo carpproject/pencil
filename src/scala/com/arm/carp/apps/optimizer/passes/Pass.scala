@@ -24,21 +24,101 @@ package com.arm.carp.apps.optimizer.passes
 
 import com.arm.carp.pencil._;
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.HashMap
+
+class PassArgumentStorage {
+  private val data = HashMap[String, Any]()
+
+  def get[T](name: String): T = {
+    data.get(name) match {
+      case Some(data) => data.asInstanceOf[T]
+      case data => Checkable.ice(data, "invalid pass argument")
+    }
+  }
+
+  def set(name: String, value: String): Boolean = {
+    data.get(name) match {
+      case Some(arg) => {
+        arg match {
+          case _:String =>
+            data(name) = value
+            true
+          case _:Boolean if value == "yes" =>
+            data(name) = true
+            true
+          case _:Boolean if value == "no" =>
+            data(name) = false
+            true
+          case _:Int if value.matches("\\d+") =>
+            data(name) = Integer.parseInt(value)
+            true
+          case _ => false
+        }
+      }
+      case _ => false
+    }
+  }
+
+  def add[T](name: String, default: T) = {
+    data.get(name) match {
+      case None => data(name) = default
+      case data => Checkable.ice((data, name, default), "pass option redefinition")
+    }
+  }
+
+  def copy = {
+    val res = new PassArgumentStorage
+    res.data ++= data
+    res
+  }
+
+  def list = data.toList
+}
+
 
 /**
   * Base class for all PENCIL transformation passes.
-  *
-  * @param flag command line option to enable/disable the pass
-  *        (-fFLAG to enable, -fno-FLAG to disable).
-  * @param enabled control whether pass is enabled by default.
   */
-abstract class Pass(val flag: String, val enabled: Boolean) extends Common with Assertable with Walker {
+abstract class Pass(val name: String) extends Common with Assertable with Walker {
 
-  def execute(in: Program) = {
-    walkProgram(in)
+  private var args: Option[PassArgumentStorage] = None
+
+  private val default_args = new PassArgumentStorage
+
+  def registerOption[T](oname: String, default: T): () => T = {
+    default_args.add(oname, default)
+    () => {
+      args match {
+        case Some(args) => args.get[T](oname)
+        case None =>
+          ice(name, "Cannot find a pass argument set. Are you using val to" +
+              "store the result of registerOption call? The result must be" +
+              "stored to def (i.e. only evaluated when the pass is executed," +
+              "not when the pass is created).")
+      }
+    }
   }
 
-  def run(in: Program): Program = {
+  def getArgsTemplate = default_args.copy
+
+  var changed: Boolean = true
+
+  def rerun = changed
+  def set_changed () = {changed = true}
+  def reset_changed () = {changed = false}
+
+  private final def execute(in: Program): Program = {
+    reset_changed
+    val res = walkProgram(in)
+    if (rerun) {
+      execute(res)
+    } else {
+      res
+    }
+  }
+
+  final def run(in: Program, pargs: PassArgumentStorage): Program = {
+    args = Some(pargs)
     Checkable.walkProgram(execute(in))
   }
 }

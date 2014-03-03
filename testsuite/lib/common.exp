@@ -18,57 +18,70 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-proc clean {name} {
-  file delete "${name}.h"
-  file delete "${name}.run"
-}
-
-proc build_expected_error_set_for_file {file} {
-  set result [dict create]
-  set fp [open "$file"]
-  set data [split [read "$fp"] "\n"]
-  close $fp
-  set num 1
-
-  foreach line $data {
-    if {[string match *//@Error* $line]} {
-      dict set result $num False
+proc mark_error_test {} {
+    if {$::tool_name == "linker"} {
+        set ::expect_linker_error true
     }
-    incr num
-  }
-  return $result
+    set ::should_compile false
+    set ::should_run false
 }
 
-proc build_expected_error_set {args} {
-  set result [dict create]
-  foreach file $args {
-    set ferrors [build_expected_error_set_for_file $file]
-    if {[dict size $ferrors] > 0} {
-      dict set result $file [build_expected_error_set_for_file $file]
+proc do_link-error {} {
+    mark_error_test
+}
+
+proc do_error {} {
+    mark_error_test
+    dict set ::expected_errors $::line False
+}
+
+proc do_link-with {file} {
+    set dir [file dirname $::input_filename]
+    lappend ::additional_files "$dir/$file"
+}
+
+proc do_assert {cond} {
+    add_code "assert($cond);"
+}
+
+proc do_require-option {option} {
+    lappend ::additional_option "$option"
+}
+
+proc add_code {code} {
+    if { $::should_compile } {
+        set ::should_run true
     }
-  }
-  return $result
+    set ::additional_code "$::additional_code\n$code"
 }
 
-proc run_tool {tool name out args} {
+proc do_check {pattern} {
+    puts $::check_file $pattern
+    set ::should_check true
+}
+
+
+proc clean {} {
+  file delete "$::output_filename"
+}
+
+proc run_tool {} {
   set success 0
   set error 255
 
   set expected $success
 
-  set errors [build_expected_error_set $args]
-
-  if {[dict size $errors] > 0} {
+  if {[dict size $::expected_errors] > 0 || $::expect_linker_error} {
     set expected $error
   }
 
-  spawn scala "$tool" -o "$out" "$args"
+  spawn "../$::tool_name" -o "$::output_filename" "$::input_filename" {*}$::additional_option {*}$::additional_files
 
   # Collect all output
   set lines {}
   expect {
     ERROR {
-      fail "$name: error: $expect_out(buffer)"
+      fail "$::input_filename: error: $expect_out(buffer)"
     }
 
     -re {..*} {
@@ -77,82 +90,218 @@ proc run_tool {tool name out args} {
     }
 
     timeout {
-      unresolved "$name: timeout"
+      unresolved "$::input_filename: timeout"
     }
   }
 
   # Compare tool output with list of expected errors
   set correct True
   set linelist [regexp -all -inline {(code.*?) line (\d+):} $lines]
-  foreach {pattert file line} $linelist {
-    if { ! [dict exists $errors $file $line] } {
+  foreach {pattern file line} $linelist {
+    if { ! [dict exists $::expected_errors $line] } {
       fail "$file: Compiler output (unexpected error on line $line)"
       set correct False
     } else {
-      dict set errors $file $line True
+      dict set ::expected_errors $line True
     }
   }
-  dict for {key1 val1} $errors {
-    dict for {key2 val2} $val1 {
-      if { ! $val2 } {
-        fail "$name: Compiler output (expected error on line $key2 was not reported)"
-        set correct False
+
+  set linkerrors [regexp -all -inline {Linker error:(.*)} $lines]
+  if {($linkerrors == {}) && ! $::expect_linker_error ||
+      ($linkerrors != {}) && $::expect_linker_error } {
+      if {$::tool_name == "linker"} {
+          pass "${::input_filename}: Link test"
+      }
+  } else {
+      fail "${::input_filename}: Link test"
+  }
+
+  dict for {line flag} $::expected_errors {
+      if { ! $flag } {
+          fail "$::input_filename: Compiler output (expected error on line $line was not reported)"
+          set correct False
       }
     }
-  }
   if {$correct} {
-    pass "$name: Compiler output"
+    pass "$::input_filename: Compiler output"
   }
 
   catch wait result
   set code [lindex $result 3]
   if {$code != $expected} {
-    fail "$name: Exit code ($code)"
+    fail "$::input_filename: Exit code ($code)"
   } else {
-    pass "$name: Exit code"
+    pass "$::input_filename: Exit code"
   }
 }
 
-proc compile_c {name cfile hfile} {
-  if { ![file exists "${cfile}" ]} {
-    untested "$name: C Compilation"
-    return
+proc analyze {} {
+  set fp [open "$::input_filename"]
+  set data [split [read "$fp"] "\n"]
+  close $fp
+  set ::line 1
+
+  foreach line $data {
+    if {[regexp ".*/\\* *($::tool_name|all) *\\{(@?)(.*)\\} *\\*/.*" $line match tool flag command]} {
+        if { [string length $flag] != 0 } {
+            eval "do_$command"
+        } else {
+            add_code "$command"
+        }
+    }
+    incr ::line
   }
-  if { ![file exists "${hfile}" ]} {
-    unresolved "$name: C Compilation"
-    return
-  }
-  spawn gcc -std=c99 -include "code/carp-common.h" -include "${hfile}" "${cfile}" -o "${name}.run"
+}
+
+proc compile_c_weak {} {
+  spawn gcc -std=c99 -include "code/carp-common.h" "$::output_filename" -c -o /dev/null
   catch wait result
   set code [lindex $result 3]
   if {$code != 0} {
-    fail "${name}: C Compilation"
+    fail "$::input_filename: Weak C Compilation"
   } else {
-    pass "${name}: C Compilation"
+    pass "$::input_filename: Weak C Compilation"
   }
 }
 
-proc run_binary {name binary} {
-  if { ! [file exists "${binary}"] } {
-    unresolved "${name}: Execution"
-    return
-  }
-  spawn "./${binary}"
+proc prepare {} {
+    set ::output_filename "${::input_filename}.${::tool_name}.c"
+    set ::check_filename "${::input_filename}.${::tool_name}.check"
+    set ::binary "${::input_filename}.${::tool_name}.run"
+    set ::check_file [open $::check_filename w]
+    set ::should_compile true
+    set ::expect_linker_error false
+    set ::should_check false
+    set ::should_run false
+    set ::additional_option [list]
+    set ::additional_files [list]
+    set ::expected_errors [dict create]
+    set ::additional_code ""
+    clean
+}
+
+proc prepare_for_compilation {} {
+    set fo [open $::output_filename a]
+    puts $fo "int main(){"
+    puts $fo $::additional_code
+    puts $fo "  return 0;"
+    puts $fo "}"
+    close $fo
+}
+
+
+proc compile_c {} {
+    prepare_for_compilation
+    spawn gcc -std=c99 -include "code/carp-common.h"  "${::output_filename}" -o "${::binary}"
+    catch wait result
+    set code [lindex $result 3]
+    if {$code != 0} {
+        fail "${::input_filename}: C Compilation"
+    } else {
+        pass "${::input_filename}: C Compilation"
+    }
+}
+
+proc run_binary {} {
+  spawn "./${::binary}"
   catch wait result
   set code [lindex $result 3]
   if {$code != 0} {
-    fail "${name}: Execution"
+    fail "${::input_filename}: Execution"
   } else {
-    pass "${name}: Execution"
+    pass "${::input_filename}: Execution"
   }
 
 }
 
-proc test_tool {tool name args} {
-  clean $name
-  run_tool $tool "${name}" "${name}.h" $args
-  if {[ file exists "${name}.c"]} {
-    compile_c "${name}" "${name}.c" "${name}.h"
-    run_binary "${name}" "${name}.run"
+
+proc execute {} {
+    if { ! $::should_compile &&  ! $::should_run } {
+        return
+    }
+    if { $::should_compile &&  ! $::should_run } {
+        if { ! [file exists $::output_filename ] } {
+            untested "$::input_filename: Weak C Compilation"
+            return
+        }
+        compile_c_weak
+        return
+    }
+    if { ! [file exists $::output_filename ] } {
+        untested "$::input_filename: C Compilation"
+        return
+    }
+    compile_c
+    if { ! $::should_run } {
+        return
+    }
+    if { ! [file exists $::binary ] } {
+        untested "$::input_filename: Execution"
+        return
+    }
+    run_binary
+}
+
+proc check {} {
+    close $::check_file
+    if { ! $::should_check } {
+        return
+    }
+    if {[info exists ::env(FILE_CHECK_TOOL)] && $::env(FILE_CHECK_TOOL) != "" } {
+        spawn $::env(FILE_CHECK_TOOL) -input-file=$::output_filename $::check_filename
+        catch wait result
+        set code [lindex $result 3]
+        if {$code != 0} {
+            fail "${::input_filename}: Check"
+        } else {
+            pass "${::input_filename}: Check"
+        }
+    } else {
+        untested "${::input_filename}: Check"
+    }
+}
+
+proc check_file_for_linking {name} {
+  set fp [open "$::input_filename"]
+  set data [split [read "$fp"] "\n"]
+  close $fp
+  foreach line $data {
+    if {[regexp ".*/\\* *($::tool_name|all) *\\{(@?)(.*)\\} *\\*/.*" $line match tool flag command]} {
+        if { [string length $flag] != 0 } {
+            if {[string match error* "$command"]} {
+                return false
+            }
+        } else {
+            add_code "$command"
+        }
+    }
   }
+  return true
+}
+
+proc analyze_linked {} {
+    foreach input $::additional_files {
+        if {! [check_file_for_linking $input] } {
+            unresolved "${::input_filename}: Linkage with ${name}"
+            return false
+        }
+    }
+    return true
+}
+
+proc walk_file {} {
+    prepare
+    analyze
+    if {! [analyze_linked] } {
+        return
+    }
+    run_tool
+    check
+    execute
+}
+
+proc test_tool {tool filename} {
+  set ::input_filename "$filename"
+  set ::tool_name "$tool"
+  walk_file
 }

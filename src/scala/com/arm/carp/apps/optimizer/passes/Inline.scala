@@ -34,7 +34,7 @@ import scala.language.postfixOps
   * can be inlined.
   */
 
-class Inline extends Pass("inline", true) {
+object Inline extends Pass("inline") {
   val config = WalkerConfig.expressions
 
   type ScalarVarMap = Map[ScalarVariableDef, ScalarVariableDef]
@@ -165,6 +165,7 @@ class Inline extends Pass("inline", true) {
     if (updater.returnCount > 1 || updater.returnCount == 1 && !lastIsReturn(in.func.ops.get)) {
       None
     } else {
+      set_changed
       makeBlock(scalarArgsInit, ops) match {
         case Some(block) => Some(block)
         case None => Some(new BlockOperation(List()))

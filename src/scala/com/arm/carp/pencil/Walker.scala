@@ -89,6 +89,14 @@ trait Walker extends Assertable with CommonOps with ExpressionWalker {
     }
   }
 
+  def walkExpressionProxy(in: Expression) = {
+    if (config.expressions) {
+      walkExpression(in)
+    } else {
+      (in, None)
+    }
+  }
+
   def walkGuardExpression(in: ScalarExpression) = {
     walkScalarExpressionProxy(in)
   }
@@ -102,9 +110,10 @@ trait Walker extends Assertable with CommonOps with ExpressionWalker {
   }
 
   def walkRange(in: Range) = {
+    val iter = walkIterationVariable(in.iter)
     val low = walkScalarExpressionProxy(in.low)
     val upper = walkScalarExpressionProxy(in.upper)
-    (in.copy(low = low._1, upper = upper._1), make(low._2, upper._2))
+    (in.copy(low = low._1, upper = upper._1, iter = iter._1), make(low._2, upper._2, iter._2))
   }
 
   def getCleanBody(in: Option[BlockOperation]) = {
@@ -165,11 +174,24 @@ trait Walker extends Assertable with CommonOps with ExpressionWalker {
   }
 
   def walkPENCILOperation(in: Operation with PENCILOperation): Option[Operation] = {
-    Some(in)
+    val op = walkExpressionProxy(in.op)
+    in.op = op._1
+    make(op._2, Some(in))
+  }
+
+  def walkArrayType (in: ArrayType): Option[Operation] = {
+    val range = walkScalarExpressionProxy(in.range)
+    in.range = range._1
+    in.base match {
+      case _:ScalarType => range._2
+      case arr:ArrayType =>
+        val base = walkArrayType(arr)
+        make(base, range._2)
+    }
   }
 
   def walkArrayDeclOperation(in: ArrayDeclOperation) = {
-    Some(in)
+    make(walkArrayType(in.array.expType), Some(in))
   }
 
   def walkOperation(in: Operation): Option[Operation] = {

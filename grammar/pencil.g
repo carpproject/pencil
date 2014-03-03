@@ -130,6 +130,10 @@ tokens
   STRUCT_SUBS;
   DECL;
   DECL_AND_INIT;
+  POINTER;
+  DECLARATOR;
+  DIRECT_DECLARATOR;
+  INDIRECT_DECLARATOR;
   EMPTY_STATEMENT;
   ARRAY_TYPE;
   ARRAY_TYPE_ATTRIBUTES;
@@ -157,6 +161,8 @@ tokens
   ARRAY_INIT;
   SCALAR_INIT;
   TERNARY;
+  SCOP='scop';
+  ENDSCOP='endscop';
   TRUE='true';
   FALSE='false';
   BUILTIN_FUNCTION;
@@ -249,7 +255,14 @@ struct_type_definition: STRUCT NAME? BLOCK_LEFT (variable_decl_int SEMICOLON)* B
 array_type_suffix: ARRAY_LEFT array_type_attributes* expression ARRAY_RIGHT
   -> ^(ARRAY_TYPE expression ^(ARRAY_TYPE_ATTRIBUTES array_type_attributes*));
 
-variable_decl_int: base_type NAME array_type_suffix* -> ^(DECL NAME ^(TYPE base_type array_type_suffix*));
+pointer: '*' ;
+
+declarator        : pointer* direct_declarator -> ^(DECLARATOR pointer* direct_declarator);
+
+direct_declarator : NAME array_type_suffix*               -> ^(DIRECT_DECLARATOR NAME  array_type_suffix*)
+                  | '(' declarator ')' array_type_suffix* -> ^(INDIRECT_DECLARATOR declarator array_type_suffix* );
+
+variable_decl_int: base_type declarator                   -> ^(DECL base_type declarator);
 
 variable_decl_init: variable_decl_int MOV init_expression -> ^(DECL_AND_INIT variable_decl_int init_expression);
 
@@ -294,7 +307,11 @@ attribute:(ATTRIBUTE BRACKET_LEFT BRACKET_LEFT attr BRACKET_RIGHT BRACKET_RIGHT)
 
 block: block_statement | labeled_statement  -> ^(BLOCK labeled_statement);
 
-block_statement: BLOCK_LEFT annotated_statement* BLOCK_RIGHT -> ^(BLOCK annotated_statement*);
+block_statement: BLOCK_LEFT scop* BLOCK_RIGHT -> ^(BLOCK scop*);
+
+scop: PRAGMA_PREFIX PRAGMA SCOP annotated_statement PRAGMA_PREFIX PRAGMA ENDSCOP
+        -> ^(SCOP annotated_statement)
+     | annotated_statement -> annotated_statement;
 
 statement_access_pragma: PRAGMA_PREFIX PRAGMA PENCIL ACCESS block -> block;
 

@@ -43,9 +43,19 @@ abstract class Operation {
   var access: Option[BlockOperation] = None
   var info: Option[OperationPassInfo] = None
 
-  def copy():Operation
+  protected def create_copy(): Operation
+
+  protected def update[T <: Operation](in: T):T = {
+    in.scop = scop
+    in
+  }
+
+  def copy() = {
+    update(create_copy())
+  }
 
   var parent: Option[BlockOperation] = None
+  var scop: Boolean = false
 }
 
 /** Trait for PENCIL built-in functions.  */
@@ -80,13 +90,13 @@ object Counter {
 
 /** PENCIL assignment operation.  */
 class AssignmentOperation(var lvalue: ScalarExpression with LValue, var rvalue: ScalarExpression) extends Operation {
-  def copy = new AssignmentOperation(lvalue, rvalue)
+  protected def create_copy = new AssignmentOperation(lvalue, rvalue)
   override def toString() = lvalue.toString + " = " + rvalue.toString
 }
 
 /** PENCIL return operation.  */
 class ReturnOperation(var op: Option[ScalarExpression]) extends Operation {
-  def copy = new ReturnOperation(op)
+  protected def create_copy = new ReturnOperation(op)
   override def toString() = {
     op match {
       case None => "return"
@@ -97,7 +107,8 @@ class ReturnOperation(var op: Option[ScalarExpression]) extends Operation {
 
 /** PENCIL block operation.  */
 class BlockOperation(var ops: Seq[Operation]) extends Operation {
-  def copy = new BlockOperation(ops)
+  protected def create_copy = new BlockOperation(ops)
+  override def copy() = update(create_copy())
   override def toString = "{\n" + ops.map(_.toString).mkString("\n") + "\n}"
 }
 
@@ -113,7 +124,7 @@ class BlockOperation(var ops: Seq[Operation]) extends Operation {
  * The only exception is a function call, which might be used outside assignment.
  */
 class CallOperation(var op: CallExpression) extends Operation {
-  def copy = new CallOperation(op)
+  protected def create_copy = new CallOperation(op)
   override def toString = op.toString
 }
 
@@ -122,7 +133,7 @@ class IfOperation(
   var guard: ScalarExpression,
   var ops: BlockOperation,
   var eops: Option[BlockOperation]) extends Operation {
-  def copy = new IfOperation(guard, ops, eops)
+  protected def create_copy = new IfOperation(guard, ops, eops)
   override def toString = {
     "if (" + guard.toString + ")\n" + ops.toString + (eops match {
       case None => ""
@@ -152,7 +163,7 @@ class IndependentLoop(val labels: Option[Seq[Operation]]) extends ForProperties
 class ForOperation(
   var properties: Seq[ForProperties],
   var range: Range, var ops: BlockOperation) extends Operation {
-  def copy = new ForOperation(properties, range, ops)
+  protected def create_copy = new ForOperation(properties, range, ops)
   override def toString = "for (" + range.toString + ")\n" + ops.toString
 }
 
@@ -160,24 +171,24 @@ class ForOperation(
 class WhileOperation(
   var guard: ScalarExpression,
   var ops: BlockOperation) extends Operation {
-  def copy = new WhileOperation(guard, ops)
+  protected def create_copy = new WhileOperation(guard, ops)
   override def toString = "while (" + guard.toString + ")\n" + ops.toString
 }
 
 /** PENCIL break operation.  */
 class BreakOperation extends Operation {
-  def copy = new BreakOperation
+  protected def create_copy = new BreakOperation
   override def toString = "break"
 }
 
 /** PENCIL continue operation.  */
 class ContinueOperation extends Operation {
-  def copy = new ContinueOperation
+  protected def create_copy = new ContinueOperation
   override def toString = "continue"
 }
 
 class ArrayDeclOperation(val array: ArrayVariableDef) extends Operation {
-  def copy = new ArrayDeclOperation(array)
+  protected def create_copy = new ArrayDeclOperation(array)
   override def toString = "DECL(" + array.toString + ")"
 }
 
@@ -213,25 +224,25 @@ class Function(
 /** __pencil_use built-in function.  */
 class USEOperation(var op: Expression) extends Operation with PENCILOperation {
   val str = "__pencil_use"
-  def copy = new USEOperation(op)
+  protected def create_copy = new USEOperation(op)
 }
 
 /** __pencil_def built-in function.  */
 class DEFOperation(var op: Expression) extends Operation with PENCILOperation {
   val str = "__pencil_def"
-  def copy = new DEFOperation(op)
+  protected def create_copy = new DEFOperation(op)
 }
 
 /** __pencil_kill built-in function.  */
 class KillOperation(var op: Expression) extends Operation with PENCILOperation {
   val str = "__pencil_kill"
-  def copy = new KillOperation(op)
+  protected def create_copy = new KillOperation(op)
 }
 
 /** __pencil_assume built-in function.  */
 class AssumeOperation(var op: Expression) extends Operation with PENCILOperation {
   val str = "__pencil_assume"
-  def copy = new AssumeOperation(op)
+  protected def create_copy = new AssumeOperation(op)
 }
 
 /**

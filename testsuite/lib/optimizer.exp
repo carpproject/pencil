@@ -20,5 +20,5 @@
 
 source lib/common.exp
 proc test_pencil {file} {
-  test_tool "../optimizer.jar" $file $file
+  test_tool "optimizer" $file
 }

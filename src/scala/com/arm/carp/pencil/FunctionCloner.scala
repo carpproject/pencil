@@ -53,14 +53,26 @@ trait FunctionCloner extends Walker {
     }
   }
 
+  private def updateType(in: ArrayType): ArrayType = {
+    val range = walkScalarExpression(in.range)._1
+    in.base match {
+      case _:ScalarType => in.copy(range = range)
+      case arr:ArrayType  => in.copy(range = range, base = updateType(arr))
+    }
+  }
+
   private def updateArrayVariable(in: ArrayVariableDef) = {
     arrays.get(in) match {
       case Some(variable) => variable
       case None =>
-        val res = new ArrayVariableDef(in.expType, in.name, in.restrict, in.init)
+        val res = new ArrayVariableDef(updateType(in.expType), in.name, in.restrict, in.init)
           arrays.put(in, res)
           res
     }
+  }
+
+  override def walkArrayDeclOperation(in: ArrayDeclOperation) = {
+    Some(new ArrayDeclOperation(updateArrayVariable(in.array)))
   }
 
   override def walkFunctionArgument(in: Variable) = {

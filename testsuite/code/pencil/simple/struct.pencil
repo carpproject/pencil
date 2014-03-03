@@ -34,3 +34,7 @@ struct SS
 int foo(struct S in[12]) {
   return in[1+2+3].a;
 }
+
+/* all {struct S in[20];} */
+/* all {in[6].a = 123;} */
+/* all {@assert {foo (in) == 123}} */

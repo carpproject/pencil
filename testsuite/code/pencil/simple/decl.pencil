@@ -25,3 +25,4 @@ int f()
   int i = 12;
   return i + 1;
 }
+/* all {@assert {f() == 13}} */

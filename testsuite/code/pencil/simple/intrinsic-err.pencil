@@ -22,7 +22,7 @@
 
 int my_max(int i, int j)
 {
-  int k = max1(i, j); //@Error
-  int l = max1(i, j, k); //@Error
+  int k = max1(i, j); /* all {@error} */
+  int l = max1(i, j, k); /* all {@error} */
   return 0;
 }

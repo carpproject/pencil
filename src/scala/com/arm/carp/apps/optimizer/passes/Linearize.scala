@@ -49,7 +49,7 @@ import scala.collection.mutable.ListBuffer
   * }
   */
 
-class Linearize extends Pass("linearize", true) {
+object Linearize extends Pass("linearize") {
 
   val config = WalkerConfig.minimal
 
@@ -58,7 +58,7 @@ class Linearize extends Pass("linearize", true) {
     for (op <- body.ops) {
       val processed = walkOperation(op)
       processed match {
-        case Some(ops: BlockOperation) =>
+        case Some(ops: BlockOperation) if !ops.scop =>
           buff.appendAll(ops.ops)
         case Some(op: Operation) => buff.append(op)
         case None =>

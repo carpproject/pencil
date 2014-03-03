@@ -26,3 +26,5 @@ int f (int i)
   int k = j;
   return k;
 }
+/* all {@assert {f(1) == 1}} */
+/* all {@assert {f(2) == 2}} */

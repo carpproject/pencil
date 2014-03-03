@@ -474,6 +474,14 @@ trait Common {
       case _ => Checkable.ice((t1, t2), "Invalid type to uplift")
     }
   }
+  def compatibleWithFunction (f1: Function, retType: ScalarType, params: Seq[Variable]) = {
+    f1.retType.compatible(retType) && f1.params.size == params.size &&
+    (f1.params, params).zipped.forall((p1, p2) => p1.expType.compatible(p2.expType))
+  }
+
+  def compatibleFunctions (f1: Function, f2: Function) = {
+    compatibleWithFunction(f1, f2.retType, f2.params)
+  }
 }
 
 /** Hosts some common operations over PENCIL statements.  */
@@ -482,7 +490,7 @@ trait CommonOps {
     val buff = new ListBuffer[Operation]
     for (item <- init) {
       item match {
-        case Some(ops: BlockOperation) => buff.appendAll(ops.ops)
+        case Some(ops: BlockOperation) if !ops.scop => buff.appendAll(ops.ops)
         case Some(operation) => buff.append(operation)
         case None =>
       }

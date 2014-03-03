@@ -23,5 +23,5 @@
 void f(){}
 
 void g(){
-  f()();//@Error
+  f()(); /* all {@error} */
 }

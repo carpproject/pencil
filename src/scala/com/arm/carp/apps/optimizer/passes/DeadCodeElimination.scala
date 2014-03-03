@@ -25,7 +25,7 @@ package com.arm.carp.apps.optimizer.passes
 import com.arm.carp.pencil._
 import com.arm.carp.pencil.ReachingDefinitions
 import com.arm.carp.pencil.ReachSet
-
+import scala.collection.mutable.Set
 
 /**
   * Remove unreachable (dead) and useless code from PENCIL program.
@@ -43,18 +43,26 @@ import com.arm.carp.pencil.ReachSet
   * - for loop with empty body
   * - Statements after return in the same block
   */
-class DeadCodeElimination extends Pass("dce", true) {
+object DeadCodeElimination extends Pass("dce") {
 
-  val config = WalkerConfig.minimal
+  val config = WalkerConfig.expressions
+
+  val called = Set[Function]()
 
   override def walkIf(in: IfOperation): Option[Operation] = {
+    walkGuardExpression(in.guard)
     in.guard match {
-      case BooleanConstant(Some(false)) => walkBlock(in.eops)
-      case BooleanConstant(Some(true)) => walkBlock(in.ops)
+      case BooleanConstant(Some(false)) =>
+        set_changed
+        walkBlock(in.eops)
+      case BooleanConstant(Some(true)) =>
+        set_changed
+        walkBlock(in.ops)
       case guard =>
         val body = walkBlock(in.ops)
         val ebody = walkBlock(in.eops)
         if (noSideEffects(guard) && body.isEmpty && ebody.isEmpty) {
+          set_changed
           None
         } else {
           in.ops = getCleanBody(body)
@@ -65,8 +73,11 @@ class DeadCodeElimination extends Pass("dce", true) {
   }
 
   override def walkWhile(in: WhileOperation): Option[Operation] = {
+    walkGuardExpression(in.guard)
     in.guard match {
-      case BooleanConstant(Some(false)) => None
+      case BooleanConstant(Some(false)) =>
+        set_changed
+        None
       case _ =>
         in.ops = getCleanBody(walkBlock(in.ops))
         Some(in)
@@ -91,11 +102,13 @@ class DeadCodeElimination extends Pass("dce", true) {
   }
 
   override def walkAssignment(in: AssignmentOperation) = {
+    super.walkAssignment(in)
     val dead = in.info match {
       case Some(reaches: ReachSet) => reaches.data.filter(_ != in.lvalue).size == 0
       case _ => false
     }
     if (dead && noSideEffects(in.rvalue) && noSideEffects(in.lvalue)) {
+      set_changed
       None
     } else {
       Some(in)
@@ -107,7 +120,6 @@ class DeadCodeElimination extends Pass("dce", true) {
       case _: CallExpression => false
       case call: IntrinsicCallExpression => call.args.forall(noSideEffects(_))
       case _: ArraySubscription => false
-      case _: StructSubscription => true
       case _: VariableRef => true
       case _: Constant => true
       case exp: SingleArgumentExpression[_] => noSideEffects(exp.op1)
@@ -118,8 +130,10 @@ class DeadCodeElimination extends Pass("dce", true) {
   }
 
   override def walkFor(in: ForOperation) = {
+    walkRange(in.range)
     val body = walkBlock(in.ops)
     if (body.isEmpty && noSideEffects(in.range.low) && noSideEffects(in.range.upper)) {
+      set_changed
       None
     } else {
       in.ops = getCleanBody(body)
@@ -127,8 +141,18 @@ class DeadCodeElimination extends Pass("dce", true) {
     }
   }
 
-  override def execute(in: Program) = {
+  override def walkCallExpression(in: CallExpression) = {
+    called.add(in.func)
+    super.walkCallExpression(in)
+  }
+
+  override def walkFunctions(in: Traversable[Function]) = {
+    super.walkFunctions(in).filter(func => !func.local || called.contains(func))
+  }
+
+  override def walkProgram(in: Program) = {
+    called.clear
     ReachingDefinitions.compute(in)
-    walkProgram(in)
+    super.walkProgram(in)
   }
 }

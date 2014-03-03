@@ -22,8 +22,10 @@
 
 int i()
 {
-    int k = 1 + 2 + sizeof(int);
-    int p = 3 * 19 + sizeof(double);
-    int S = k + p + sizeof(int[20]);
-    return S / sizeof(float);
+    int k = 1 + 2 + sizeof(int); //7
+    int p = 3 * 19 + sizeof(double); //65
+    int S = k + p + sizeof(int[20]); //152
+    return S / sizeof(float); //38
 }
+
+/* all {@assert {i() == 38}} */

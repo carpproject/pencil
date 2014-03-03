@@ -27,3 +27,6 @@ int i()
     int S = k + p + sizeof(int);
     return S / sizeof(float);
 }
+
+/* all {@assert {i() == ((60 + sizeof(int)) / sizeof(float))}} */
+/* all {@assert {i() == 16}} */

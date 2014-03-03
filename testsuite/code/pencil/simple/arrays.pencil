@@ -24,8 +24,12 @@ int foo(int i)
 {
   int j = 12;
   int A[i + 1 + j];
+  A[0] = 1;
+  A[j] = 2;
     {
-      int A[A[0] + A[j]];
-      return A[0];
+      int B[A[0] + A[j]];
+      B[0] = A[0] - 1;
+      return A[B[0]];
     }
 }
+/* all {@assert {foo(1) == 1}} */

@@ -32,5 +32,8 @@ int foo(int N[10]){
 
 int g(){
     int S[10][10];
+    S[2][1] = 1;
+    S[2][9] = 1;
     return foo (S[2]);
 }
+/* all {@assert {g() == 2}} */

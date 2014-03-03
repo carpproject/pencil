@@ -22,17 +22,20 @@
 
 package com.arm.carp.apps.linker
 
+import com.arm.carp.apps.Version
 import com.arm.carp.pencil.Printer
 import java.io.PrintWriter
 import java.io.File
 import com.arm.carp.frontends.pencil.PencilFrontEnd
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import com.arm.carp.pencil.Program
 import com.arm.carp.pencil.Function
 import com.arm.carp.pencil.StructType
 import com.arm.carp.pencil.Variable
 import com.arm.carp.pencil.Checkable
+import com.arm.carp.pencil.Common
 
 /**
   * Linker application.
@@ -41,28 +44,60 @@ import com.arm.carp.pencil.Checkable
   * assigning unique names to static functions. For non-static
   * functions, global types and constants names must be unique.
   */
-object Main {
+object Main extends Common {
+
+  private var correct = true
+
+  private var debug = false
 
   private def link(in: Seq[Program]): Program = {
     val names = HashSet[String]()
     val functions = ListBuffer[Function]()
-    val types = ListBuffer[StructType]()
+    val types = HashMap[String, StructType]()
+    val prototypes = HashMap[String, Function]()
+    val structs = ListBuffer[StructType]()
     val consts = ListBuffer[Variable]()
+
+    def add_function_prototype(in: Function): Boolean = {
+      if (!names.add(in.getName)) {
+        prototypes.get(in.getName) match {
+          case Some(function) if (function.ops.isEmpty || in.ops.isEmpty) => {
+            if (!compatibleFunctions(function, in)) {
+              complain("Incompatible previous function declarations for function: " + in.name)
+              false
+            } else {
+              true
+            }
+          }
+          case _ => {
+            complain("Name conflict during linking: function " + in.name)
+            false
+          }
+        }
+      } else {
+        true
+      }
+    }
+
     for (prog <- in) {
       for (gtype <- prog.types) {
-        if (!names.add(gtype.name)) {
+        types.get (gtype.name) match {
+          case None => {
+            types.put(gtype.name, gtype)
+            structs.append(gtype)
+          }
+          case Some(struct) if !struct.compatible(gtype) =>
           complain("Name conflict during linking: struct " + gtype.name)
+          case Some(struct) =>
         }
-        types.append(gtype)
       }
       for (function <- prog.functions) {
-        if (!names.add(function.getName)) {
-          /* For static function getName returns unique name, so
-           * conflict is only possible for non-static functions.
-           */
-          complain("Name conflict during linking: function " + function.name)
+        if (add_function_prototype(function)) {
+          prototypes.put (function.getName, function)
+          if (function.ops.isDefined) {
+            functions.append(function)
+          }
         }
-        functions.append(function)
       }
       for (const <- prog.consts) {
         if (!names.add(const.name)) {
@@ -71,7 +106,7 @@ object Main {
         consts.append(const)
       }
     }
-    new Program(functions.toList, types.toList, consts.toList)
+    new Program(functions.toList, structs.toList, consts.toList)
   }
 
   private val inputFileNames = HashSet[String]()
@@ -80,7 +115,11 @@ object Main {
   private def parseCommandLine(args: List[String]): Unit = {
     args match {
       case Nil =>
+      case "-d" :: rest =>
+        debug = true
+        parseCommandLine(rest)
       case "-h" :: rest => sayHelp()
+      case "--version" :: rest => sayVersion()
       case "-o" :: x :: rest =>
         outputFileName = Some(x); parseCommandLine(rest)
       case x :: rest => inputFileNames.add(x); parseCommandLine(rest)
@@ -88,13 +127,19 @@ object Main {
   }
 
   private def sayHelp() {
-    System.err.println("Usage: input-files [-o output-file]")
+    System.err.println("Usage: input-files [--version] [-o output-file]")
+    System.exit(0)
+  }
+
+  private def sayVersion() {
+    System.err.println("PENCIL Linker")
+    System.err.println(Version.getFullVersionInfo)
     System.exit(0)
   }
 
   private def complain(message: String) {
-    System.err.println("Error:" + message)
-    System.exit(-1)
+    System.err.println("Linker error:" + message)
+    correct = false
   }
 
   def main(args: Array[String]) {
@@ -109,9 +154,9 @@ object Main {
     val buff = new ListBuffer[Program]()
 
     for (prog <- inputFileNames) {
-      val pencil = frontend.parse(prog)
+      val pencil = frontend.parse(prog, debug)
       pencil match {
-        case None => complain("Linker error.")
+        case None => complain("one of the input files contains an error")
         case Some(pprogram) =>
           {
             Checkable.walkProgram(pprogram)
@@ -122,6 +167,9 @@ object Main {
 
     val pencil = link(buff.toList)
 
+    if (!correct) {
+      System.exit(-1)
+    }
     val writer = new Printer
     val code = writer.toPencil(pencil)
 

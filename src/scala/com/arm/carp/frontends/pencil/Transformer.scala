@@ -131,7 +131,7 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   private def checkNode(in: Tree, tag: Int, text: String, children: Int = -1) = {
     if (children != -1) {
-      assert(in.getChildCount == children, in, "Inexpected number of children (" + children + " expected, but " + in.getChildCount + " found)")
+      assert(in.getChildCount == children, in, "Unexpected number of children (" + children + " expected, but " + in.getChildCount + " found)")
     }
     assert(in.getType == tag, in, text + " expected")
   }
@@ -141,6 +141,7 @@ class Transformer(val filename: String) extends Common with Assertable {
   private val FloatConstantType = FloatType(32, false)
 
   private val structtypes = ListBuffer[StructType]()
+  private val structnames = Set[String]()
   private val consts = ListBuffer[Variable]()
   private var error = false
 
@@ -250,7 +251,10 @@ class Transformer(val filename: String) extends Common with Assertable {
     val op2 = transformScalarExpression(in.getChild(1))
     (op1, op2) match {
       case (Some(op1), Some(op2)) => {
-        if (!check(op1.expType.isNumeric && op2.expType.isNumeric, in, "invalid argument types for comparison operation")) {
+        val isNumeric = op1.expType.isNumeric && op2.expType.isNumeric
+        val isBoolean = op1.expType.isBoolean && op2.expType.isBoolean
+        val eqComparison = in.getType == EQ || in.getType == NEQ
+        if (!check(isNumeric || (isBoolean && eqComparison), in, "invalid argument types for comparison operation")) {
           None
         } else {
           val _type = getMaxType(op1.expType, op2.expType)
@@ -976,11 +980,7 @@ class Transformer(val filename: String) extends Common with Assertable {
       case EMPTY_STATEMENT => None
       case BLOCK => Some(transformBlock(stmt, access))
       case EXPRESSION_STATEMENT => transformExpressionStatement(stmt, access)
-      case DECL =>
-        transformVariableDeclaration(in) match {
-          case Some(variable:ArrayVariableDef) => Some(new ArrayDeclOperation(variable))
-          case _ => None
-        }
+      case DECL => transformCallOrDecln(in)
       case DECL_AND_INIT =>
         transformVariableDeclarationStmt(in)
       case MODIFY => transformModify(stmt, access)
@@ -997,11 +997,25 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
+  private def transformScop(in: Tree, access: Boolean) = {
+    val (statement, scop) = (if (in.getType == SCOP) {
+        checkNode(in, SCOP, "SCOP", 1)
+        check(!access, in, "pragma scop cannot be used inside access blocks")
+        (in.getChild(0), true)
+      } else {(in, false)})
+    val ret = transformStatement(statement, access)
+    ret match {
+      case Some(statement) => statement.scop = scop
+      case None =>
+    }
+    ret
+  }
+
   private def transformBlock(in: Tree, access: Boolean, push: Boolean = true): BlockOperation = {
     checkNode(in, BLOCK, "BLOCK")
     if (push) varmap.push
     val res = (intWrapper(0) to (in.getChildCount - 1)).map(i => {
-      transformStatement(in.getChild(i), access)
+      transformScop(in.getChild(i), access)
     }).filter(_.isDefined).map(_.get)
     if (push) varmap.pop
     new BlockOperation(res)
@@ -1086,8 +1100,7 @@ class Transformer(val filename: String) extends Common with Assertable {
             complain(in, "Function " + nname.getText + " has already been declared")
             None
           } else {
-            val correct = function.retType.compatible(_type.get) && function.params.size == params.size &&
-              (params, function.params).zipped.forall((p1, p2) => p1.expType.compatible(p2.expType))
+            val correct = compatibleWithFunction(function, _type.get, params)
             if (check(correct, in, "function declaration conflicts with previous declaration")) {
               function.ops = fbody
               function.params = params
@@ -1112,25 +1125,72 @@ class Transformer(val filename: String) extends Common with Assertable {
     return false
   }
 
+  /** Helper function to process array suffix* [..][..]...
+    * start, stop and step indicate which children of 'in' are array-suffix*
+    * baseType is the initial type and [..] evolves the type to 'ArrayType of type'
+    */
+  private def processArraySuffix(in : Tree, start: Int, stop: Int, step: Int, baseType: Option[Type]): Option[Type] = {
+    (start to stop by step).foldLeft(baseType)((tmpType, idx) => {
+      val size = transformScalarExpression(in.getChild(idx).getChild(0))
+      (tmpType, size) match {
+        case (Some(_type), Some(_size)) => {
+          if (check(_size.expType.isInt, in.getChild(idx), "invalid array size expression")) {
+            Some(ArrayType(_type, _size))
+          } else None
+        }
+        case _ => None
+      }
+    })
+  }
+
+  /** Receives baseType and declarator tree. Returns the Name and Type as Options.
+    * BNF{ declarator  : pointer* direct_declarator -> ^(DECLARATOR pointer* direct_declarator) }
+    */
+  private def transformDeclarator(baseType: Option[Type], in: Tree): (Option[String], Option[Type]) = {
+    checkNode(in, DECLARATOR, "DECLARATOR")
+
+    val type1 = baseType match {
+      case Some(type1)  =>
+        Some((type1 /: List.range(1, in.getChildCount))((tmpType, _) => PointerType(tmpType)))   /*Some(Pointer(..Pointer(baseType)..)) */
+      case _ => None
+    }
+    transformDirectDeclarator(type1, in.getChild(in.getChildCount - 1))  /*last child is ddeclr */
+  }
+
+  /** Handles both direct and indirect declarator
+    * DIRECT_DECLARATOR  : NAME array_type_suffix*
+    * INDIRECT_DECLARATOR: '(' declarator ')' array_type_suffix*
+    */
+  private def transformDirectDeclarator(baseType: Option[Type], in: Tree): (Option[String], Option[Type]) = {
+    if (in.getType == DIRECT_DECLARATOR) {
+      checkNode(in.getChild(0), NAME, "NAME")
+      val name = in.getChild(0).getText
+      (Some(name), processArraySuffix(in, (in.getChildCount-1), 1, -1, baseType))
+    }
+    else if (in.getType == INDIRECT_DECLARATOR) {
+      val type1 = processArraySuffix(in, (in.getChildCount-1), 1, -1, baseType)
+      transformDeclarator(type1, in.getChild(0))
+    }
+    else (None,None)
+  }
+
+  /** Handles BNF 'variable_decl_int: base_type declarator -> ^(DECL base_type declarator)'
+    */
   private def transformVariableDeclarationInt(decl: Tree, init: Option[Tree]): Option[Variable] = {
     checkNode(decl, DECL, "DECL", 2)
-    val nname = decl.getChild(0)
-    val ntype = decl.getChild(1)
-    checkNode(nname, NAME, "NAME", 0)
-    checkNode(ntype, TYPE, "TYPE")
+    val baseType = decl.getChild(0)
+    val declr    = decl.getChild(1)
 
-    val name = nname.getText
-    val _type = transformType(decl.getChild(1))
-    (_type match {
-      case None => {
-        None
-      }
-      case Some(st: ScalarType) => {
+    val _type1 = transformBaseType( baseType )
+    val (name, _type2) = transformDeclarator( _type1, declr )    /*_type2 evolves from _typ1: e.g. Array(PointerType(Array( _type1)))*/
+
+    (name,_type2) match {
+      case (Some(name), Some(st: ScalarType)) => {
         init match {
           case Some(sinit) => {
             transformScalarExpression(sinit) match {
               case Some(init) =>
-                if (check(init.expType.convertible(st), decl, "invalid initializer")) {
+                if (check(init.expType.convertible(st), decl, "invalid initializer found in declaration")) {
                   Some(ScalarVariableDef(st, name, Some(convertScalar(init, st))))
                 } else {
                   None
@@ -1145,7 +1205,7 @@ class Transformer(val filename: String) extends Common with Assertable {
           }
         }
       }
-      case Some(at: ArrayType) => {
+      case (Some(name), Some(at: ArrayType)) => {
         init match {
           case Some(sinit) => {
             transformArrayInit(sinit, at) match {
@@ -1157,32 +1217,44 @@ class Transformer(val filename: String) extends Common with Assertable {
             }
           }
           case None => {
-            Some(ArrayVariableDef(at, name, checkRestrict(decl.getChild(1)), None))
+            Some(ArrayVariableDef(at, name, true, None))
           }
         }
       }
-      case Some(_type) => Checkable.ice(_type, "unexpected type")
-    })
+      case (_, Some(_type)) => Checkable.ice(_type, "unexpected type found in declaration")
+      case (_,_) => None
+    }
   }
 
+  /** Handles BNF: variable_decl_init: variable_decl_int MOV init_expression -> ^(DECL_AND_INIT variable_decl_int init_expression)
+    */
   private def transformVariableDeclarationStmt(in: Tree) = {
     checkNode(in, DECL_AND_INIT, "DECL_AND_INIT", 2)
     val decl = in.getChild(0)
-    val nname = decl.getChild(0)
-    transformVariableDeclarationInt(decl, Some(in.getChild(1))) match {
-      case None => None
-      case Some(av: ArrayVariableDef) =>
-        check(varmap.addVariable(av, nname.getText), decl, "variable " + nname.getText + " has already been declared")
+    val init = in.getChild(1)
+
+    val (name, type1) = transformVariableDeclarationInt(decl, Some(init)) match {
+      case Some(st: ScalarVariableDef) => (Some(st.name), Some(st))
+      case Some(at: ArrayVariableDef ) => (Some(at.name), Some(at))
+      case _ => (None, None)
+    }
+
+    (name, type1 ) match {
+      case (_, None) => None
+
+      case (Some(name), Some(av: ArrayVariableDef)) =>
+        check(varmap.addVariable(av, name), decl, "variable " + name + " has already been declared")
         Some(new ArrayDeclOperation(av))
-      case Some(sv: ScalarVariableDef) => {
+
+      case (Some(name), Some(sv: ScalarVariableDef)) => {
         val variable = sv.copy(init = None)
-        if (check(varmap.addVariable(variable, nname.getText), decl, "variable " + nname.getText + " has already been declared")) {
+        if (check(varmap.addVariable(variable, name), decl, "variable " + name + " has already been declared")) {
           Some(new AssignmentOperation(new ScalarVariableRef(variable), sv.init.get))
         } else {
           None
         }
       }
-      case Some(op) => Checkable.ice(op, "unexpected variable")
+      case (_,Some(op)) => Checkable.ice(op, "unexpected variable")
     }
   }
 
@@ -1193,12 +1265,18 @@ class Transformer(val filename: String) extends Common with Assertable {
     } else {
       (in, None)
     }
-    val nname = decl.getChild(0)
-    transformVariableDeclarationInt(decl, init) match {
-      case Some(variable) =>
-        check(varmap.addVariable(variable, nname.getText), decl, "variable " + nname.getText + " has already been declared")
+
+    val (name, type1) = transformVariableDeclarationInt(decl, init) match {
+      case Some(st: ScalarVariableDef) => (Some(st.name), Some(st))
+      case Some(at: ArrayVariableDef ) => (Some(at.name), Some(at))
+      case _ => (None, None)
+    }
+
+    (name, type1) match {
+      case (Some(name), Some(variable)) =>
+        check(varmap.addVariable(variable, name), decl, "variable " + name + " has already been declared")
         Some(variable)
-      case None => None
+      case (_,_)  => None
     }
   }
 
@@ -1244,11 +1322,11 @@ class Transformer(val filename: String) extends Common with Assertable {
         case TYPE_INT => isInt = isInt + 1
         case TYPE_BOOL => isBoolean = isBoolean + 1
         case TYPE_VOID => isVoid = isVoid + 1
-        case TYPE_HALF => isHalf = isHalf + 1
         case TYPE_CHAR =>
           isInt = isInt + 1
           isChar = true
 
+        case TYPE_HALF => isHalf = isHalf + 1
         case TYPE_LONG => isLong = true
         case TYPE_SHORT => isShort = true
 
@@ -1269,7 +1347,7 @@ class Transformer(val filename: String) extends Common with Assertable {
           complain(in, "invalid basic type specification")
           None
         } else {
-          Some(FloatType(32, isConst)) //double
+          Some(FloatType(32, isConst)) //float
         }
       case (0, 0, 1, 0, 0, 0) =>
         if (isLong || isShort || isSigned || isUnsigned) {
@@ -1278,6 +1356,7 @@ class Transformer(val filename: String) extends Common with Assertable {
         } else {
           Some(FloatType(16, isConst)) //half
         }
+
       case (0, 0, 0, 0, 0, 1) =>
         if (isLong || isShort || isSigned || isUnsigned) {
           complain(in, "invalid basic type specification")
@@ -1393,26 +1472,26 @@ class Transformer(val filename: String) extends Common with Assertable {
     val names = Set[String]()
     val fdecl = (0 to (fields.getChildCount - 1)).map(i =>
       {
-        val field = fields.getChild(i)
+        val field = fields.getChild(i)                                    /*field is ^(DECL base_type declarator); */
         checkNode(field, DECL, "DECL", 2)
-        val fname = field.getChild(0)
-        val ftype = field.getChild(1)
-        checkNode(fname, NAME, "NAME", 0)
-        checkNode(ftype, TYPE, "TYPE")
 
-        val res = transformType(ftype) match {
-          case Some(ptype) =>
-            if (check(!names.contains(fname.getText), field, "field " + fname.getText + " already exists")) {
-              (fname.getText, Some(ptype))
+        val _type = transformBaseType( field.getChild(0) )
+        val (fname, ftype) = transformDeclarator( _type, field.getChild(1) )
+
+        val res = (fname, ftype) match {
+          case (Some(aname),Some(atype)) =>
+            if (check(!names.contains(aname), field, "field " + aname + " already exists")) {
+              (aname, Some(atype))
             } else {
-              (fname.getText, None)
+              (aname, None)
             }
-          case None => (fname.getText, None)
+          case (Some(aname), None) => (aname, None)
+          case error => Checkable.ice(error, "unexpected input")
         }
-        names.add(fname.getText)
+
+        names.add(res._1)
         res
       }).filter(_._2.isDefined).map(pair => (pair._1, pair._2.get))
-
 
 
     val _type = if (in.getChildCount() == 2) {
@@ -1425,7 +1504,11 @@ class Transformer(val filename: String) extends Common with Assertable {
       anonStructCounter = anonStructCounter + 1
       StructType(fdecl, false, "_struct_type_" + anonStructCounter)
     }
-    structtypes.append(_type)
+    if (!structnames.add(_type.name)) {
+      complain(in, "Struct " + _type.name + " has already been declared")
+    } else {
+      structtypes.append(_type)
+    }
     _type
   }
 
@@ -1456,9 +1539,12 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  def transformProgram(in: program_return): Option[Program] = {
+  def transformProgram(in: program_return, debug: Boolean): Option[Program] = {
     val tree = in.getTree.asInstanceOf[Tree]
     checkNode(tree, PROGRAM, "PROGRAM")
+    if (debug) {
+      printTree(tree, "")
+    }
     varmap.push
     val functions = (intWrapper(0) to (tree.getChildCount - 1)).map(num => transformTopDecl(tree.getChild(num)))
     varmap.pop
@@ -1473,6 +1559,109 @@ class Transformer(val filename: String) extends Common with Assertable {
       Some(res)
     } else {
       None
+    }
+  }
+
+  /** Returns 'NAME' of potential function, if base is purely an undefined name.
+    */
+  private def checkBaseUnknown(base: Tree): Option[Tree] = {
+    base.getType match {
+      case USER_TYPE => {
+        if (base.getChildCount == 1) { /*calls cannot have type attributes info */
+          val nameTree = base.getChild(0)
+          checkNode(nameTree, NAME, "NAME")
+          val name = nameTree.getText()
+
+          typemap.get(name) match {
+            case None => Some(nameTree) /*name is not a type, so could be a function name*/
+            case _ => None
+          }
+        } else None
+      }
+      case _ => None
+    }
+  }
+
+  /** Returns 'NAME' of potential arg if decl is purely a name (wrapped in'()' but no pointers or array-suffix).
+    */
+  private def checkDeclrSimple(declr: Tree, castCounter: Int): Option[Tree] =
+    {
+      checkNode(declr, DECLARATOR, "DECLARATOR")
+      if (declr.getChildCount != 1) {
+        None; /*declarator has pointers */
+      } else {
+        checkDirectDeclrSimple(declr.getChild(0), castCounter)
+      }
+    }
+
+  private def checkDirectDeclrSimple(ddeclr: Tree, castCounter: Int): Option[Tree] = {
+    if (ddeclr.getType == DIRECT_DECLARATOR) {
+      if (ddeclr.getChildCount == 1) {
+        val name = ddeclr.getChild(0)
+        checkNode(name, NAME, "NAME")
+        if (castCounter > 0)
+          Some(name)
+        else
+          None /* e.g. 'foo a' is not a valid call. cast'( )' is needed*/
+      } else
+        None /*has array suffix*/
+    } else if (ddeclr.getType == INDIRECT_DECLARATOR) {
+      if (ddeclr.getChildCount == 1)
+        checkDeclrSimple(ddeclr.getChild(0), castCounter + 1)
+      else
+        None /*contains array suffix*/
+    } else
+      None
+  }
+
+  private def transformCallOrDecln(in: Tree): Option[Operation] = {
+    checkNode(in, DECL, "DECL", 2)
+    val base = in.getChild(0)
+    val declr = in.getChild(1)
+
+    val funcTree = checkBaseUnknown(base)
+    val argTree = checkDeclrSimple(declr, 0)
+
+    (funcTree, argTree) match {
+      case (Some(fname), Some(arg)) => changeDeclnToCall(fname, arg, in)
+
+      case (_, _) =>
+        /* treat as a normal declaration */
+        transformVariableDeclaration(in) match {
+          case Some(variable: ArrayVariableDef) => Some(new ArrayDeclOperation(variable))
+          case _ => None
+        }
+    }
+  }
+
+  private def changeDeclnToCall(fname: Tree, arg: Tree, fullTree: Tree): Option[Operation] = {
+    varmap.getVariable(arg.getText) match {
+      case None => {
+        complain(fullTree, " argument is an undeclared variable: " + arg.getText)
+        None
+      }
+      case Some(argvar) => {
+        fmap.get(fname.getText) match { /*find function using function name */
+          case Some(function) => {
+            if (!check(function.params.size == 1, fullTree, "invalid number of function arguments")) {
+              None
+            } else {
+              val variable = function.params(0)
+              if (!check(argvar.expType.convertible(variable.expType), fullTree, "invalid function argument for " +
+                variable.name + " (" + argvar.expType + " -> " + variable.expType + ")")) {
+                None
+              } else {
+                calls += function
+                val argvars = Seq(argvar)
+                Some(new CallOperation(new CallExpression(function, argvars)))
+              }
+            }
+          }
+          case None =>
+            complain(fname, "Function " + fname.getText + " undeclared")
+            None
+        }
+      }
     }
   }
 }

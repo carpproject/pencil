@@ -20,10 +20,10 @@
  * THE SOFTWARE.
  */
 
-int foo_min(int A[10])//@Error
+int foo_min(int A[10]) /* all {@error} */
 {
   int i = A[0];
-#pragma pencil reduction(minmax:i)//@Error
+#pragma pencil reduction(minmax:i) /* all {@error} */
   for (int j = 0; j < 10; j++) {
     i = (A[j] > i)?i:A[j];
   }

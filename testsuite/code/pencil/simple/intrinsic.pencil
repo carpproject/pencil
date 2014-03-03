@@ -24,3 +24,6 @@ int my_max(int i, int j)
 {
   return max(i, j);
 }
+/* all {@assert {my_max(1,2) == 2}} */
+/* all {@assert {my_max(2,2) == 2}} */
+/* all {@assert {my_max(2,1) == 2}} */
