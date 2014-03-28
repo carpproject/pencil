@@ -23,6 +23,7 @@
 package com.arm.carp.frontends.pencil
 
 import org.antlr.runtime.ANTLRFileStream
+import org.antlr.runtime.ANTLRInputStream
 import org.antlr.runtime.CommonTokenStream
 import com.arm.carp.pencil.parser.pencilLexer
 import com.arm.carp.pencil.parser.pencilParser
@@ -30,22 +31,31 @@ import com.arm.carp.pencil.Program
 import java.io.File
 
 /**
-  * PENCIL fron-end class.
+  * PENCIL front-end class.
   *
-  * It parses a supplied PENCIL program file and returns either
-  * valid PENCIL program or reports error and returns None.
+  * It parses the supplied PENCIL program file and returns either a
+  * valid PENCIL program or reports an error and returns None.
   *
-  * It uses ANTLR to parse the program and build AST, which
-  * is supplied to pencil [[com.arm.carp.frontends.pencil.Transformer]].
+  * If file is empty (""), then input is read from standard input.
+  *
+  * It uses ANTLR to parse the program and build the AST, which
+  * is then supplied to the PENCIL [[com.arm.carp.frontends.pencil.Transformer]].
   */
 
 class PencilFrontEnd {
   def parse(file: String, debug: Boolean): Option[Program] = {
-    if (!(new File(file)).exists()) {
-      System.err.println("File " + file + " not found")
-      return None
+    val input = {
+      if (file.equals("")) {
+        new ANTLRInputStream(System.in)
+      }
+      else {
+        if (!(new File(file)).exists()) {
+          System.err.println("File " + file + " not found")
+          return None
+        }
+        new ANTLRFileStream(file)
+      }
     }
-    val input = new ANTLRFileStream(file)
     val lexer = new pencilLexer(input)
     val tokens = new CommonTokenStream(lexer)
     val parser = new pencilParser(tokens)

@@ -80,6 +80,9 @@ object Main {
   private def parseCommandLine(args: List[String]): Boolean = {
     args match {
       case Nil => inputFileName.isDefined
+      case "-" :: rest =>
+        inputFileName = Some("")
+        parseCommandLine(rest)
       case "-d" :: rest =>
         debug = true
         parseCommandLine(rest)
@@ -116,6 +119,7 @@ object Main {
 
   private def sayHelp() {
     System.err.println("Usage: input-file [--version] [-o output-file] [-f[no-]all] [-dump-passes] [passes options]")
+    System.err.println("       if input-file is a single hyphen (-) then input is taken from standard input")
     System.err.println("       passes can enabled/disabled with -f[-no]<PASS NAME>[idx] option")
     System.err.println("       use idx after pass name to disable specific occurence of pass")
     System.err.println("       Example: -fno-cp0 would disable the first occurance of the CP pass")
