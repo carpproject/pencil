@@ -21,22 +21,14 @@
  */
 
 #include <stdlib.h>
+#include <pencil.h>
 
 #define SUCCESS 0
 #define FAIL 255
 #define EPS 0.01
 
-#define __pencil_use(arg)
-#define __pencil_def(arg)
-#define __pencil_maybe(arg)
-#define __pencil_kill(arg)
-#define __pencil_assume(arg)
-#define half float
-#define bool int
 #define true 1
 #define false 0
-#define max(x, y) (((x) > (y)) ? (x) : (y))
-#define min(x, y) (((x) < (y)) ? (x) : (y))
 
 void assert(int cond) {
   if (!cond) {
