@@ -175,7 +175,8 @@ class Transformer(val filename: String) extends Common with Assertable {
     in.getType match {
       case NUMBER => Some(IntegerConstant(IntegerConstantType, Integer.parseInt(in.getText)))
       case OCTAL_NUMBER => Some(IntegerConstant(IntegerConstantType, Integer.parseInt(in.getText, 8)))
-      case _ => ice(in, "unvalid node for int constant")
+      case HEX_NUMBER => Some(IntegerConstant(IntegerConstantType, Integer.decode(in.getText)))
+      case _ => ice(in, "invalid node for int constant")
     }
   }
 
