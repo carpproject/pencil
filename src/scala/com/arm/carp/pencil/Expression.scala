@@ -85,13 +85,13 @@ trait Constant
 trait ScalarMathTyped {
   val op1: ScalarExpression
   val op2: ScalarExpression
-  val expType = op1.expType
+  val expType = op1.expType.updateConst(true)
 }
 
 /** Trait for scalar unary expression, with result type equal to the type of the operands.  */
 trait ScalarMathTypedUnary {
   val op1: ScalarExpression
-  val expType = op1.expType
+  val expType = op1.expType.updateConst(true)
 }
 
 /* Level 1. Generic base class for scalar unary expressions.  */
@@ -283,7 +283,7 @@ case class ArrayIdxExpression(op1: ArrayExpression, op2: ScalarExpression) exten
   with DoubleArgumentExpression[ArrayExpression, ScalarExpression] {
   val expType = {
     op1.expType.base match {
-      case array: ArrayType => array
+      case array: ArrayType => array.updateConst(op1.expType.const)
       case _ => Asserts.ice(op1.expType.base, "unexpected scalar type")
     }
   }
@@ -296,7 +296,7 @@ case class ScalarIdxExpression(op1: ArrayExpression, op2: ScalarExpression) exte
   def update(nop1: ArrayExpression, nop2: ScalarExpression) = this.copy(op1 = nop1, op2 = nop2)
   val expType = {
     op1.expType.base match {
-      case scalar: ScalarType => scalar
+      case scalar: ScalarType => scalar.updateConst(op1.expType.const)
       case _ => Asserts.ice(op1.expType.base, "unexpected array type")
     }
   }
@@ -346,7 +346,7 @@ case class ScalarStructSubscription(base: ScalarExpression, field: Int) extends 
       case StructType(fields, _, _) => {
         Asserts.assert(field >= 0 && field < fields.size, (base, field), "invalid struct subscription")
         fields(field)._2 match {
-          case t: ScalarType => Some(t)
+          case t: ScalarType => Some(t.updateConst(base.expType.const))
           case _ => Asserts.ice((base, field), "invalid struct subscription (scalar field expected)")
         }
       }
@@ -363,7 +363,7 @@ case class ArrayStructSubscription(base: ScalarExpression, field: Int) extends A
       case StructType(fields, _, _) => {
         Asserts.assert(field >= 0 && field < fields.size, (base, field), "invalid struct subscription")
         fields(field)._2 match {
-          case t: ArrayType => Some(t)
+          case t: ArrayType => Some(t.updateConst(base.expType.const))
           case _ => Asserts.ice((base, field), "invalid struct subscription (scalar field expected)")
         }
       }
@@ -375,11 +375,11 @@ case class ArrayStructSubscription(base: ScalarExpression, field: Int) extends A
 }
 
 case class CallExpression(func: Function, args: Seq[Expression]) extends ScalarExpression {
-  val expType = func.retType
+  val expType = func.retType.updateConst(true)
 }
 
 case class IntrinsicCallExpression(name: String, args: Seq[ScalarExpression]) extends ScalarExpression {
-  val expType = args(0).expType
+  val expType = args(0).expType.updateConst(true)
 }
 
 case class SizeofExpression(obj: Type) extends ScalarExpression {

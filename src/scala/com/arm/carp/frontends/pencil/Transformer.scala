@@ -875,9 +875,7 @@ class Transformer(val filename: String) extends Common with Assertable {
       case _ => ice(node, "unexpected modify node")
     }
     val lvalue = transformScalarExpression(node.getChild(0)) match {
-      case Some(variable: ScalarVariableRef) => Some(variable)
-      case Some(asub: ScalarIdxExpression) => Some(asub)
-      case Some(ssub: ScalarStructSubscription) => Some(ssub)
+      case Some(exp:ScalarExpression with LValue) if !exp.expType.const => Some(exp)
       case Some(_) => {
         complain(node.getChild(0), "invalid lvalue")
         None
