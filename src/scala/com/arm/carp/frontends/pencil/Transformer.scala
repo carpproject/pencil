@@ -528,6 +528,7 @@ class Transformer(val filename: String) extends Common with Assertable {
           }
         }
       }
+      case CALL => transformCallExpression(in);
     }
     res
   }

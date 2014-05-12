@@ -446,7 +446,7 @@ postfix_expression;
 
 lvalue: subscription;
 
-postfix_expression: call_expression | subscription;
+postfix_expression: subscription;
 
 call_expression: NAME BRACKET_LEFT BRACKET_RIGHT -> ^(CALL NAME)
                     | NAME BRACKET_LEFT expression (COMMA expression)* BRACKET_RIGHT
@@ -457,7 +457,7 @@ subscription: (term -> term) (
                   -> ^(ARRAY_SUBS $subscription expression)|
                   DOT NAME -> ^(STRUCT_SUBS $subscription NAME))*;
 
-term: NAME | constant | BRACKET_LEFT expression BRACKET_RIGHT -> expression
+term: NAME | constant | BRACKET_LEFT expression BRACKET_RIGHT -> expression | call_expression
     | PENCIL_MAYBE BRACKET_LEFT BRACKET_RIGHT
       -> ^(PENCIL_MAYBE);
 
