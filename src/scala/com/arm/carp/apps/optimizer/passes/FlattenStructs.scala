@@ -312,9 +312,10 @@ object FlattenStructs extends Pass("flatten-structs") {
       case Some(exp) =>
         exp.expType match {
           case st:StructType  =>
-            val op = unflattenArgument(exp, st)
+            val updated = walkScalarExpression(exp)
+            val op = unflattenArgument(updated._1, st)
             in.op = Some(op._1)
-            makeBlock(op._2, Some(in))
+            makeBlock(updated._2, op._2, Some(in))
           case _ => super.walkReturn(in)
         }
     }
