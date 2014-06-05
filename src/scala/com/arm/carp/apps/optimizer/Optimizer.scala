@@ -109,8 +109,15 @@ object Main {
         handlePassFlag(x)
         parseCommandLine(rest)
       case x :: rest =>
-        inputFileName = Some(x)
-        parseCommandLine(rest)
+        inputFileName match
+        {
+          case Some(_) => false
+          case None =>
+          {
+            inputFileName = Some(x)
+            parseCommandLine(rest)
+          }
+        }
       case flag =>
         complain("Unknown flag " + flag)
         false
