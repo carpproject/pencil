@@ -164,7 +164,7 @@ object Main {
     val writer = new Printer
 
     val optimized = passes.run(pencil.get)
-    val code = writer.toPencil(optimized)
+    val code = writer.toPencil(optimized, true, true)
 
     outputFileName match {
       case Some(fname) =>

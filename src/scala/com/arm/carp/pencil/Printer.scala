@@ -458,25 +458,29 @@ class Printer extends Assertable {
     }
   }
 
-  def toPencil(in: Program): String = {
+  def toPencil(in: Program, prototypes: Boolean, fbodies: Boolean): String = {
     processDeclarations(in.consts)
     processStructDefinitions(in.types)
-    buff.append("\n// Function prototypes\n")
-    for (func <- in.functions) {
-      processFunctionDeclaration(func)
-      if (func.access.isDefined) {
-        buff.append(" __attribute__((access(")
-        buff.append(getFuncName(func.access.get))
-        buff.append(")))")
+    if (prototypes) {
+      buff.append("\n// Function prototypes\n")
+      for (func <- in.functions) {
+        processFunctionDeclaration(func)
+        if (func.access.isDefined) {
+          buff.append(" __attribute__((access(")
+          buff.append(getFuncName(func.access.get))
+          buff.append(")))")
+        }
+        if (func.const) {
+          buff.append(" __attribute__((const))")
+        }
+        buff.append(";\n")
       }
-      if (func.const) {
-        buff.append(" __attribute__((const))")
-      }
-      buff.append(";\n")
     }
-    buff.append("\n// Function definitions\n")
-    for (func <- in.functions.filter(_.ops.isDefined)) {
-      processFunctionDefinition(func, in.consts)
+    if (fbodies) {
+      buff.append("\n// Function definitions\n")
+      for (func <- in.functions.filter(_.ops.isDefined)) {
+        processFunctionDefinition(func, in.consts)
+      }
     }
     buff.toString
   }

@@ -50,6 +50,8 @@ object Main extends Common {
 
   private var debug = false
 
+  private var prototypes_only = false
+
   private def link(in: Seq[Program]): Program = {
     val names = HashSet[String]()
     val functions = ListBuffer[Function]()
@@ -122,6 +124,9 @@ object Main extends Common {
       case "--version" :: rest => sayVersion()
       case "-o" :: x :: rest =>
         outputFileName = Some(x); parseCommandLine(rest)
+      case "--prototypes-only" :: rest =>
+        prototypes_only = true
+        parseCommandLine(rest)
       case x :: rest => inputFileNames.add(x); parseCommandLine(rest)
     }
   }
@@ -171,7 +176,7 @@ object Main extends Common {
       System.exit(-1)
     }
     val writer = new Printer
-    val code = writer.toPencil(pencil)
+    val code = writer.toPencil(pencil, true, !prototypes_only)
 
     outputFileName match {
       case Some(fname) =>
