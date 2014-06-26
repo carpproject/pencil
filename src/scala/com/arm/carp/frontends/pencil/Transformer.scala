@@ -36,7 +36,7 @@ import scala.collection.mutable.HashSet
 
 /** Nested namespaces support.  */
 class NamespaceStack {
-  private type Namespace = Map[String, Variable]
+  private type Namespace = Map[String, (Variable, Boolean)]
 
   private val data = Stack[Namespace]()
 
@@ -49,7 +49,7 @@ class NamespaceStack {
     * This function should be called when entering new PENCIL block.
     */
   def push() = {
-    data.push(Map[String, Variable]())
+    data.push(Map[String, (Variable, Boolean)]())
   }
 
   /**
@@ -71,11 +71,11 @@ class NamespaceStack {
     * @returns <code>true</code> if the variable is declared, <code>false</code> if
     * variable with such name already exists in current namespace.
     */
-  def addVariable(in: Variable, name: String) = {
+  def addVariable(in: Variable, name: String, cst: Boolean = false) = {
     if (data.top.contains(name)) {
       false
     } else {
-      data.top += ((name, in))
+      data.top += ((name, (in, cst)))
       true
     }
   }
@@ -87,8 +87,8 @@ class NamespaceStack {
       None
     } else {
       data(idx).get(name) match {
-        case Some(scalar: ScalarVariableDef) => Some(new ScalarVariableRef(scalar))
-        case Some(array: ArrayVariableDef) => Some(new ArrayVariableRef(array))
+        case Some((scalar: ScalarVariableDef, cst: Boolean)) => Some(new ScalarVariableRef(scalar, cst))
+        case Some((scalar: ArrayVariableDef, _)) => Some(new ArrayVariableRef(scalar))
         case _ => Checkable.ice(name, "required variable not found")
       }
     }
@@ -1247,8 +1247,8 @@ class Transformer(val filename: String) extends Common with Assertable {
         Some(new ArrayDeclOperation(av))
 
       case (Some(name), Some(sv: ScalarVariableDef)) => {
-        val variable = sv.copy(init = None)
-        if (check(varmap.addVariable(variable, name), decl, "variable " + name + " has already been declared")) {
+        val variable = sv.copy(init = None, expType = sv.expType.updateConst((false)))
+        if (check(varmap.addVariable(variable, name, sv.expType.const), decl, "variable " + name + " has already been declared")) {
           Some(new AssignmentOperation(new ScalarVariableRef(variable), sv.init.get))
         } else {
           None
