@@ -311,8 +311,8 @@ case class ScalarVariable(base: ScalarVariableDef) extends ScalarExpression with
   val variable = base
 }
 
-class ScalarVariableRef(val variable: ScalarVariableDef) extends ScalarExpression with VariableRef {
-  val expType = variable.expType
+class ScalarVariableRef(val variable: ScalarVariableDef, isCst: Boolean = false) extends ScalarExpression with VariableRef {
+  val expType = if (!isCst) variable.expType else variable.expType.updateConst(true)
   override def toString() = "ScalarVariableRef(" + variable.toString + ")"
 }
 
