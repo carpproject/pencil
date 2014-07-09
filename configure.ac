@@ -35,11 +35,11 @@ fi
 
 dnl FileCheck installation
 AC_SUBST(FILE_CHECK_TOOL)
-AC_ARG_WITH([filecheck],
+AC_ARG_WITH([filecheck-home],
             [AS_HELP_STRING([--with-filecheck-home=path],[Directory containing FileCheck])],
-            [FILE_CHECK_HOME="$with_filecheck"],[])
-AC_CHECK_PROG([filecheck_found], ["FileCheck"], [yes], [no], ["$FILE_CHECK_HOME:$PATH"])
-if test "x$filecheck_found" != "xyes"; then
+            [FILE_CHECK_HOME="$with_filecheck_home"],[])
+AC_CHECK_PROG([filecheck_home_found], ["FileCheck"], [yes], [no], ["$FILE_CHECK_HOME:$PATH"])
+if test "x$filecheck_home_found" != "xyes"; then
   if test "x$FILE_CHECK_HOME" != "x"; then
       AC_MSG_ERROR([could not find FileCheck executable])
   else
