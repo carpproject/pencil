@@ -74,6 +74,7 @@ object Main {
     passes.addPass(ConstantPropagation, "cp1", true)
     passes.addPass(LICM, "licm0", false)
     passes.addPass(DeadCodeElimination, "dce2", true)
+    passes.addPass(IndexExtraction, "index-extraction0", false)
     passes.addPass(Linearize, "linearize2", true)
   }
 
