@@ -35,7 +35,7 @@ Running the tests
 * to run the optimizer testsuite: runtest --tool optimizer
 * to run the linker testsuite: runtest --tool linker
 * to run a single linker test: LINKER_TEST=<path-to-test-file> runtest --tool linker
-* to run a single optimizer test: LINKER_TEST=<path-to-test-file> runtest --tool optimizer
+* to run a single optimizer test: OPTIMIZER_TEST=<path-to-test-file> runtest --tool optimizer
 
 Example 1
 ---------
