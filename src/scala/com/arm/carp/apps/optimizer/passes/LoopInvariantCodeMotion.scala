@@ -119,10 +119,32 @@ object LICM extends Pass("licm") {
     in
   }
 
-  override def walkScalarBinaryExpression(in: ScalarBinaryExpression) = {
+  private def walkScalarBinaryExpressionOrig(in: ScalarBinaryExpression) = {
     val op1 = walkScalarExpression(in.op1)
     val op2 = walkScalarExpression(in.op2)
     (asInvariantExp(in.update(op1._1, op2._1), isInvariant(op1._1, op2._1)), make(op1._2, op2._2))
+  }
+
+  private def walkScalarBianryExpressionSum(in: ScalarBinaryExpression) = {
+    val flattened = listFromSumTree(in).map(walkScalarExpression)
+    val (raw_invariants, raw_rest) = flattened.partition(exp => isInvariant(exp._1))
+    val invariants = raw_invariants.unzip
+    val rest = raw_rest.unzip
+    val init = make((invariants._2 ::: rest._2):_*)
+    val exp = if (invariants._1.isEmpty) {
+      sumTreeFromList(rest._1)
+    } else {
+      val invariant = liftInvariants(asInvariantExp(sumTreeFromList(invariants._1), true))
+      sumTreeFromList(invariant :: rest._1)
+    }
+    (exp, init)
+  }
+
+  override def walkScalarBinaryExpression(in: ScalarBinaryExpression) = {
+    in match {
+      case _: PlusExpression | _: MinusExpression => walkScalarBianryExpressionSum(in)
+      case _ => walkScalarBinaryExpressionOrig(in)
+    }
   }
 
   override def walkScalarTernaryExpression (in: TernaryExpression) = {
@@ -151,7 +173,7 @@ object LICM extends Pass("licm") {
   }
 
   private def isInvariant (in: ScalarExpression*) = {
-    in.forall(_.info match {
+    !loops.isEmpty && in.forall(_.info match {
       case Some(InvariantInfo(true)) => true
       case _ => false
     })

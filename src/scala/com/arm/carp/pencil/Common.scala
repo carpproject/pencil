@@ -482,6 +482,33 @@ trait Common {
   def compatibleFunctions (f1: Function, f2: Function) = {
     compatibleWithFunction(f1, f2.retType, f2.params)
   }
+
+  /** Construct a list of terms from a summation/subtraction expression tree.
+    */
+  def listFromSumTree(in: ScalarExpression): List[ScalarExpression] = {
+    in match {
+      case x: PlusExpression =>  listFromSumTree(x.op1) ::: listFromSumTree(x.op2)
+      case x: MinusExpression => listFromSumTree(x.op1) ::: listFromSumTree(UnaryMinusExpression(x.op2))
+      case y => List(y)
+    }
+  }
+
+  /** Create a MinusExpression if right is a UnaryMinusExpression; otherwise
+    * create a PlusExpression.
+    */
+  private def createPlusOrMinus(left: ScalarExpression, right: ScalarExpression): ScalarExpression = {
+    right match {
+      case x: UnaryMinusExpression => new MinusExpression(left, x.op1)
+      case _ => new PlusExpression(left, right)
+    }
+  }
+
+  /** Construct a summation tree from a list of expressions.
+    */
+  def sumTreeFromList(terms: List[ScalarExpression]): ScalarExpression = {
+    (terms.head /: terms.tail)(createPlusOrMinus(_, _))
+  }
+
 }
 
 /** Hosts some common operations over PENCIL statements.  */

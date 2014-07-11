@@ -27,7 +27,8 @@ import scala.collection.mutable.HashMap
 import com.arm.carp.pencil.ReachingDefinitions
 import com.arm.carp.pencil.DefineSet
 
-/** Perform constant propogation and constant folding. */
+/** Perform constant propagation, constant folding, and arithmetic and logic
+  * expression simplifications. */
 object ConstantPropagation extends Pass("cp") {
 
   type RenameMap = HashMap[AssignmentOperation, ScalarVariableDef]
@@ -45,10 +46,79 @@ object ConstantPropagation extends Pass("cp") {
 
   val config = WalkerConfig.expressions
 
+  /**
+    * Summation simplification pass.
+    *
+    * Simplifies summations.  For example:
+    *
+    *   a = n*n;
+    *   for (...; i < a+(2*b)+c-a; ...)      (1)
+    *
+    * becomes
+    *
+    *   a = n*n;
+    *   for (...; i < (2*b)+c; ...)          (2)
+    *
+    * The purpose of this transformation is to aid code generation using PPCG.
+    * In the example, a is non-affine, so (1) is not analyzable, whereas
+    * (2) is affine and thus analyzable.
+    */
+  private object SummationSimplifier {
+    private def isCancellingPair(left: ScalarExpression, right: ScalarUnaryExpression): Boolean = {
+      (left, right, right.op1) match {
+        case (lhs: IntegerConstant, _: UnaryMinusExpression, rhs: IntegerConstant) => lhs.value == rhs.value
+        case (lhs: ScalarVariableRef, _: UnaryMinusExpression, rhs: ScalarVariableRef) => lhs.variable == rhs.variable
+        case _ => false
+      }
+    }
+
+    /** Return true if the terms cancel out.
+      *
+      * One of them should be a unary expression to cancel the other.
+      */
+    private def areCancellingTerms(left: ScalarExpression, right: ScalarExpression): Boolean = {
+      (left, right) match {
+        case (x: ScalarUnaryExpression, _) => isCancellingPair(right, x)
+        case (_, x: ScalarUnaryExpression) => isCancellingPair(left, x)
+        case _ => false
+      }
+    }
+
+    /** Find and prune cancelling terms.
+      *
+      * Iterate over each term and look for a cancelling term down the list.
+      * If they cancel, mark both.  Reconstruct the pruned list afterwards.
+      */
+    private def pruneCancellingTerms(terms: List[ScalarExpression]): List[ScalarExpression] = {
+      var valid = List.fill(terms.length)(true).toArray
+      for (i <- 0 to terms.length-1) {
+        var j = i+1;
+        while (valid(i) && j < terms.length) {
+          if (valid(j) && areCancellingTerms(terms(i), terms(j))) {
+            valid(i) = false
+            valid(j) = false
+          }
+          j = j + 1
+        }
+      }
+
+      val filtered = (terms zip valid.toList) filter (_._2 == true)
+      filtered.unzip._1
+    }
+
+    /** Main entry function for SummationSimplifier.
+      */
+    def simplifySummation(in: ScalarBinaryExpression) = {
+      val terms = listFromSumTree(in)
+      val simplified = pruneCancellingTerms(terms)
+      sumTreeFromList(simplified)
+    }
+  }
+
   override def walkScalarBinaryExpression (exp: ScalarBinaryExpression) = {
     val op1 = walkScalarExpression (exp.op1)._1
     val op2 = walkScalarExpression (exp.op2)._1
-    val res = (exp, op1, op2) match {
+    val simplified = (exp, op1, op2) match {
           case (_, cop1: ScalarExpression with Constant, cop2: ScalarExpression with Constant) => ConstantComputer.compute(exp, cop1, cop2)
           case (_: AndExpression, BooleanConstant(Some(false)), _) => Constants.BooleanConstantFalse
           case (_: AndExpression, _, BooleanConstant(Some(false))) => Constants.BooleanConstantFalse
@@ -89,6 +159,11 @@ object ConstantPropagation extends Pass("cp") {
 
           case _ => exp.update(op1, op2)
         }
+
+    val res = simplified match {
+      case expr: ScalarBinaryExpression => SummationSimplifier.simplifySummation(expr)
+      case _ => simplified
+    }
     (res, None)
   }
 
