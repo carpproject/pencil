@@ -40,6 +40,12 @@ proc do_link-with {file} {
     lappend ::additional_files "$dir/$file"
 }
 
+proc do_static-link-with {file} {
+    set dir [file dirname $::input_filename]
+    lappend ::additional_files "--static"
+    lappend ::additional_files "$dir/$file"
+}
+
 proc do_assert {cond} {
     add_code "assert($cond);"
 }

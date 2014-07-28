@@ -111,7 +111,7 @@ object Main extends Common {
     new Program(functions.toList, structs.toList, consts.toList)
   }
 
-  private val inputFileNames = HashSet[String]()
+  private val inputFileNames = ListBuffer[(String, Boolean)]()
   private var outputFileName: Option[String] = None
 
   private def parseCommandLine(args: List[String]): Unit = {
@@ -127,12 +127,13 @@ object Main extends Common {
       case "--prototypes-only" :: rest =>
         prototypes_only = true
         parseCommandLine(rest)
-      case x :: rest => inputFileNames.add(x); parseCommandLine(rest)
+      case "--static" :: x :: rest => inputFileNames.append((x, true)); parseCommandLine(rest)
+      case x :: rest => inputFileNames.append((x, false)); parseCommandLine(rest)
     }
   }
 
   private def sayHelp() {
-    System.err.println("Usage: input-files [--version] [-o output-file]")
+    System.err.println("Usage: [[--static] input-file]* [--version] [-o output-file]")
     System.exit(0)
   }
 
@@ -158,8 +159,8 @@ object Main extends Common {
 
     val buff = new ListBuffer[Program]()
 
-    for (prog <- inputFileNames) {
-      val pencil = frontend.parse(prog, debug)
+    for ((prog, static) <- inputFileNames) {
+      val pencil = frontend.parse(prog, debug, static)
       pencil match {
         case None => complain("one of the input files contains an error")
         case Some(pprogram) =>

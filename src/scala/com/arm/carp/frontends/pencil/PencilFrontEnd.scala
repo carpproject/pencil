@@ -43,7 +43,7 @@ import java.io.File
   */
 
 class PencilFrontEnd {
-  def parse(file: String, debug: Boolean): Option[Program] = {
+  def parse(file: String, debug: Boolean, static: Boolean = false): Option[Program] = {
     val input = {
       if (file.equals("")) {
         new ANTLRInputStream(System.in)
@@ -62,7 +62,7 @@ class PencilFrontEnd {
     val pencil = parser.program()
     if (parser.isCorrect()) {
       val transformer = new Transformer(file)
-      transformer.transformProgram(pencil, debug)
+      transformer.transformProgram(pencil, debug, static)
     } else {
       None
     }

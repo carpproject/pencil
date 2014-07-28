@@ -210,9 +210,10 @@ class Function(
   /* Whether this function is a summary function (unused by now). */
   val isSummary: Boolean,
   /* Unique id of the function.  */
+  val uniq_name_if_local: Boolean = true,
   val id: Int = Counter.nextFunction) {
   def getName() = {
-    if (local) {
+    if (local && uniq_name_if_local) {
       name + "_" + id
     } else {
       name
