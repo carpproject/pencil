@@ -20,27 +20,10 @@
  * THE SOFTWARE.
  */
 
-/* This include file is intended for inclusion with PENCIL source files,
- * enabling these to be compiled using a regular C compiler.
- */
+#ifndef PENCIL_PROTOTYPES_H
+#define PENCIL_PROTOTYPES_H
 
-#ifndef PENCIL_H
-#define PENCIL_H
-
-/* PENCIL functions */
-#define __pencil_kill(loc)
-#define __pencil_use(loc)
-#define __pencil_def(loc)
-#define __pencil_maybe()
-#define __pencil_assume(expr)
-#define __pencil_assert(expr)
-
-/* Additional PENCIL types not in C99 */
-#define half float
-#define bool int
-
-/* Common functions */
-#define min(x,y) ((x) < (y) ? (x) : (y))
-#define max(x,y) ((x) > (y) ? (x) : (y))
+int max(int x, int y);
+int min(int x, int y);
 
 #endif
