@@ -535,12 +535,20 @@ void __int_opencl_copy_to_host (pencil_cl_mem dev, size_t size, void *host)
 
 void *__int_pencil_alloc (size_t size)
 {
+#ifdef HOST_ALLOC
+    return malloc (size);
+#else
     return runtime::get_session ()->alloc_and_return_host_ptr (size);
+#endif
 }
 
 void __int_pencil_free (void *ptr)
 {
+#ifdef HOST_ALLOC
+    free (ptr);
+#else
     runtime::get_session ()->free_host_ptr (ptr);
+#endif
 }
 
 void __int_pencil_init ()
