@@ -34,7 +34,12 @@ typedef  struct __int_pencil_cl_program *pencil_cl_program;
 typedef  struct __int_pencil_cl_mem *pencil_cl_mem;
 
 /* Create and compile OpenCL program from a file.  */
-extern pencil_cl_program opencl_create_program (const char *, const char *);
+extern pencil_cl_program opencl_create_program_from_file (const char *, const char *);
+
+/* Create and compile OpenCL program from a string.  */
+extern pencil_cl_program opencl_create_program_from_string (const char *,
+                                                            size_t,
+                                                            const char *);
 
 /* Releases the OpenCL program.  */
 extern void opencl_release_program (pencil_cl_program);

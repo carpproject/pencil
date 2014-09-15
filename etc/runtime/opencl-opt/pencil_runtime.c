@@ -26,9 +26,17 @@
 #include "pencil_runtime.h"
 #include "impl/impl.h"
 
-pencil_cl_program opencl_create_program (const char *filename, const char *opts)
+pencil_cl_program opencl_create_program_from_file (const char *filename,
+                                                   const char *opts)
 {
-    return __int_opencl_create_program (filename, opts);
+    return __int_opencl_create_program_from_file (filename, opts);
+}
+
+pencil_cl_program opencl_create_program_from_string (const char *program,
+                                                     size_t size,
+                                                     const char *opts)
+{
+    return __int_opencl_create_program_from_string (program, size, opts);
 }
 
 void opencl_release_program (pencil_cl_program program)

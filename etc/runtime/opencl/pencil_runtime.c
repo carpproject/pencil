@@ -25,7 +25,11 @@
 #include "pencil_int.h"
 #include "pencil_runtime.h"
 
-pencil_cl_program opencl_create_program (const char *filename, const char *opts)
+pencil_cl_program opencl_create_program_from_file (const char *filename, const char *opts)
+{
+}
+
+pencil_cl_program opencl_create_program_from_string (const char *filename, size_t size, const char *opts)
 {
 }
 

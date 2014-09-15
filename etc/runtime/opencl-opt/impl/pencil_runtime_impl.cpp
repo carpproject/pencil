@@ -221,9 +221,13 @@ public:
 };
 
 extern "C" {
-cl_program opencl_build_program (cl_context ctx, cl_device_id dev,
-                                 const char *filename,
-                                 const char *opencl_options);
+cl_program opencl_build_program_from_file (cl_context ctx, cl_device_id dev,
+                                           const char *filename,
+                                           const char *opencl_options);
+cl_program opencl_build_program_from_string (cl_context ctx, cl_device_id dev,
+                                             const char *filename,
+                                             size_t size,
+                                             const char *opencl_options);
 }
 
 struct __int_pencil_cl_kernel
@@ -240,14 +244,25 @@ private:
     cl_program prog;
     std::map<std::string, pencil_cl_kernel> kernel_name_idx;
 
+    const char * source;
+
 public:
 
     __int_pencil_cl_program (const char *prog_file, const char *opts,
                              cl_context ctx, cl_device_id dev):
-        prog_file (prog_file), opts (opts)
+        prog_file (prog_file), opts (opts), source(NULL)
     {
-        prog = opencl_build_program (ctx, dev, prog_file, opts);
+        prog = opencl_build_program_from_file (ctx, dev, prog_file, opts);
     }
+
+    __int_pencil_cl_program (const char *source, size_t size, const char *opts,
+                             cl_context ctx, cl_device_id dev):
+        opts (opts), source(source)
+    {
+        prog = opencl_build_program_from_string (ctx, dev, source, size, opts);
+    }
+
+
 
     pencil_cl_kernel get_kernel (const char *name)
     {
@@ -272,6 +287,11 @@ public:
         return this->prog_file ==prog_file && this->opts == opts;
     }
 
+    bool match_source (const char * source, const char * opts)
+    {
+        return source != NULL && source == this->source && opts == this->opts;
+    }
+
     ~__int_pencil_cl_program ()
     {
         for (auto iter = kernel_name_idx.begin ();
@@ -292,7 +312,7 @@ class program_cache
 public:
 
     pencil_cl_program get_program (const char *file, const char *opts,
-                           cl_context ctx, cl_device_id dev)
+                                   cl_context ctx, cl_device_id dev)
     {
         for (auto iter = programs.begin ();
              iter != programs.end (); ++iter)
@@ -304,6 +324,23 @@ public:
         }
         programs.push_back (new __int_pencil_cl_program (file, opts, ctx, dev));
         return programs.back ();
+    }
+
+    pencil_cl_program get_program (const char *program, size_t size,
+                                   const char *opts,
+                                   cl_context ctx, cl_device_id dev)
+    {
+        for (auto iter = programs.begin ();
+             iter != programs.end (); ++iter)
+        {
+            if ( (*iter)->match_source (program, opts))
+            {
+                return (*iter);
+            }
+        }
+        programs.push_back (new __int_pencil_cl_program (program, size, opts, ctx, dev));
+        return programs.back ();
+
     }
 
     void clear ()
@@ -374,6 +411,11 @@ public:
     pencil_cl_program create_or_get_program (const char *path, const char *opts)
     {
         return programs.get_program (path, opts, context, device);
+    }
+
+    pencil_cl_program create_or_get_program (const char *program, size_t size, const char *opts)
+    {
+        return programs.get_program (program, size, opts, context, device);
     }
 
     void release_program (pencil_cl_program prog)
@@ -488,10 +530,17 @@ public:
     }
 };
 
-pencil_cl_program __int_opencl_create_program (const char *filename,
-                                               const char *opts)
+pencil_cl_program __int_opencl_create_program_from_file (const char *filename,
+                                                         const char *opts)
 {
     return runtime::get_session ()->create_or_get_program (filename, opts);
+}
+
+pencil_cl_program __int_opencl_create_program_from_string (const char *program,
+                                                           size_t size,
+                                                           const char *opts)
+{
+    return runtime::get_session ()->create_or_get_program (program, size, opts);
 }
 
 void __int_opencl_release_program (pencil_cl_program program)

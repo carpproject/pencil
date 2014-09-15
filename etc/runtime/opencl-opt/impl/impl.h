@@ -31,7 +31,8 @@ extern "C" {
     typedef  struct __int_pencil_cl_program *pencil_cl_program;
     typedef  struct __int_pencil_cl_mem *pencil_cl_mem;
 
-    pencil_cl_program __int_opencl_create_program (const char *, const char *);
+    pencil_cl_program __int_opencl_create_program_from_file (const char *, const char *);
+    pencil_cl_program __int_opencl_create_program_from_string (const char *, size_t, const char *);
     void __int_opencl_release_program (pencil_cl_program);
     pencil_cl_kernel __int_opencl_create_kernel (pencil_cl_program,
                                                  const char *);
