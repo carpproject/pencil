@@ -88,3 +88,35 @@ Running tools
 Linker: linker <files>
 Optimizer: optimizer <file>
 Each tool supports -h for help
+
+Creating the binary packages
+----------------------------
+The following binary packages can be created:
+ * Debian package (deb)
+ * Red Hat package (rpm)
+
+The following programs must be available:
+ * dpkg-deb
+ * fakeroot
+ * alien
+
+The packages are created as follows:
+ % autoconf
+ % ./configure --with-scala=$TARGET_SCALA_HOME --with-antlr3=$TAREGT_ANTLR_HOME --with-prefix=$TAREGT_JAR_PREFIX
+ % make
+ % make packages
+
+Variables:
+ * TARGET_SCALA_HOME - scala home location on the system, where package will be installed
+   (/usr/share/scala for example for system wide scala in Ubuntu).
+ * TARGET_ANTLR_HOME - antlr home location on the system, where package will be installed
+   (/usr/share/java for example for system wide antlr in Ubuntu).
+ * TAREGT_JAR_PREFIX - prefix for jar file installation (/usr/local/share/pencil for example).
+
+After the package is built it can be installed as follows:
+% sudo dpkg -i pencil-tools.deb # for deb package
+
+After the package is installed the following commands should be available:
+% pencil-optimizer
+% pencil-linker
+

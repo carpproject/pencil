@@ -70,5 +70,8 @@ AC_CHECK_FILE(["$ANTLR_HOME/ant-antlr3.jar"],[],[AC_MSG_ERROR([could not find fi
 
 AC_CONFIG_FILES([linker], [chmod +x linker])
 AC_CONFIG_FILES([optimizer], [chmod +x optimizer])
+AC_CONFIG_FILES([packages/ebuild/app-misc/pencil-tools/pencil-tools-9999.ebuild])
+AC_CONFIG_FILES([pencil-linker], [chmod +x pencil-linker])
+AC_CONFIG_FILES([pencil-optimizer], [chmod +x pencil-optimizer])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

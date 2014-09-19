@@ -9,3 +9,10 @@ config.log
 config.status
 configure
 Makefile
+*.deb
+*.rpm
+/pencil-linker
+/pencil-optimizer
+/work
+/packages/ebuild/app-misc/pencil-tools/pencil-tools-9999.ebuild
+pencil-tools-9999.ebuild

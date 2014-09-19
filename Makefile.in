@@ -26,7 +26,12 @@ SCALADOC=scaladoc
 export SCALA_HOME=@SCALA_HOME@
 export ANTLR_HOME=@ANTLR_HOME@
 export FILE_CHECK_TOOL=@FILE_CHECK_TOOL@
+export JAR_PREFIX=@JAR_PREFIX@
 export CLASSPATH=${ANTLR_HOME}/ant-antlr3.jar:${ANTLR_HOME}/antlr3.jar
+
+JAR_ROOT=${PREFIX}/${JAR_PREFIX}
+LIB_ROOT=${PREFIX}/usr/local/lib/
+BIN_ROOT=${PREFIX}/usr/local/bin/
 
 all: ${ALL}
 
@@ -41,7 +46,11 @@ check:${ALL:%=%-check}
 %-check:
 	cd testsuite/ && runtest --tool $*
 
-clean:${ALL:%=%-clean} docs-clean
+packages-clean:
+	rm -f *.deb
+	rm -f *.rpm
+
+clean:${ALL:%=%-clean} docs-clean packages-clean
 	echo ${CLEAN}
 
 linker-clean:
@@ -71,5 +80,18 @@ docs-clean:${DOCS:%=%-docs-clean}
 
 %-docs-clean:
 	rm -rf "docs/$*/*"
+
+.PHONY: packages
+packages:
+	fakeroot ./create-packages.sh
+
+install:
+	mkdir -p ${JAR_ROOT}
+	mkdir -p ${BIN_ROOT}
+	mkdir -p ${LIB_ROOT}
+	cp linker.jar ${JAR_ROOT}
+	cp optimizer.jar ${JAR_ROOT}
+	cp pencil-linker ${BIN_ROOT}
+	cp pencil-optimizer ${BIN_ROOT}
 
 .PHONY: ${ALL}
