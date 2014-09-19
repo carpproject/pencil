@@ -21,6 +21,14 @@
 AC_INIT([pencil], [0.01], [carp@arm.com])
 AC_CONFIG_MACRO_DIR([m4])
 
+dnl JAR install prefix
+AC_SUBST(JAR_PREFIX)
+AC_ARG_WITH([prefix],
+  [AS_HELP_STRING([--with-prefix=dir],[directory where jars are to be installed])],
+  [JAR_PREFIX="$with_prefix"],
+  [JAR_PREFIX=`pwd`]
+)
+
 dnl Scala installation
 AC_SUBST(SCALA_HOME)
 AC_ARG_WITH([scala],
