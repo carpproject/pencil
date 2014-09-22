@@ -26,6 +26,8 @@
     <property name="res" location="res"/>
     <property name="gen"  location="gen"/>
     <property name="bin"  location="bin/${name}"/>
+    <property name="lib-name"  location="pencil"/>
+    <property name="lib-bin"  location="bin/${lib-name}"/>
     <property name="grammar"  value="${name}"/>
     <property name="antlr-grammar" location="grammar/${grammar}.g"/>
 
@@ -67,6 +69,7 @@
       </taskdef>
       <mkdir dir="${parser-loc}"/>
       <mkdir dir="${bin}"/>
+      <mkdir dir="${lib-bin}"/>
     </target>
 
     <target name="clean">
@@ -80,7 +83,7 @@
         outputdirectory="${parser-loc}"/>
     </target>
 
-    <target name="compile" depends="init,run-antlr">
+    <target name="compile" depends="init,run-antlr,dist-lib">
       <javac debug="true" debuglevel="lines,vars,source"
         destdir="${bin}">
         <compilerarg value="-Xlint:unchecked"/>
@@ -95,15 +98,36 @@
           <pathelement location="${bin}"/>
           <pathelement location="${scala.home}/lib/scala-library.jar"   />
           <pathelement location="${antlr.home}/antlr3.jar"   />
+          <pathelement location="${lib-name}.jar"   />
         </classpath>
         <src>
           <pathelement path="${src}/scala/com/arm/carp/apps/${name}/"/>
           <pathelement path="${src}/scala/com/arm/carp/frontends/${grammar}/"/>
-          <pathelement path="${src}/scala/com/arm/carp/pencil/"/>
-          <pathelement path="${intrinsics-scala-loc}"/>
           <pathelement path="${versioninfo-scala-loc}"/>
         </src>
       </scalac>
+    </target>
+
+    <target name="compile-lib" depends="init">
+      <scalac
+        deprecation="yes"
+        addparams="-feature"
+        destdir="${lib-bin}">
+        <classpath>
+          <pathelement location="${scala.home}/lib/scala-library.jar"   />
+        </classpath>
+        <src>
+          <pathelement path="${intrinsics-scala-loc}"/>
+          <pathelement path="${src}/scala/com/arm/carp/pencil/"/>
+        </src>
+      </scalac>
+    </target>
+
+    <target name="dist-lib" depends="compile-lib">
+      <jar
+        destfile="${lib-name}.jar"
+        basedir="${lib-bin}">
+      </jar>
     </target>
 
     <target name="dist" depends="compile">

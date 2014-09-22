@@ -91,6 +91,7 @@ install:
 	mkdir -p ${LIB_ROOT}
 	cp linker.jar ${JAR_ROOT}
 	cp optimizer.jar ${JAR_ROOT}
+	cp pencil.jar ${JAR_ROOT}
 	cp pencil-linker ${BIN_ROOT}
 	cp pencil-optimizer ${BIN_ROOT}
 
