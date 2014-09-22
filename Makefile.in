@@ -26,12 +26,12 @@ SCALADOC=scaladoc
 export SCALA_HOME=@SCALA_HOME@
 export ANTLR_HOME=@ANTLR_HOME@
 export FILE_CHECK_TOOL=@FILE_CHECK_TOOL@
-export JAR_PREFIX=@JAR_PREFIX@
 export CLASSPATH=${ANTLR_HOME}/ant-antlr3.jar:${ANTLR_HOME}/antlr3.jar
+export G_PREFIX=${PREFIX}/@prefix@
 
-JAR_ROOT=${PREFIX}/${JAR_PREFIX}
-LIB_ROOT=${PREFIX}/usr/local/lib/
-BIN_ROOT=${PREFIX}/usr/local/bin/
+JAR_ROOT=${G_PREFIX}/share/pencil
+LIB_ROOT=${G_PREFIX}/lib/
+BIN_ROOT=${G_PREFIX}/bin/
 
 all: ${ALL}
 

@@ -30,7 +30,7 @@ Building process
 Summary:
 
 autoconf
-./configure --with-scala=$SCALA_HOME --with-antlr3=$ANTLR_HOME [--with-filecheck=$FILECHECK_HOME]
+./configure --with-scala=$SCALA_HOME --with-antlr3=$ANTLR_HOME [--with-filecheck=$FILECHECK_HOME] [--prefix=$PREFIX]
 make
 
 For more information on what $SCALA_HOME and $ANTLR_HOME should point to,
@@ -102,7 +102,7 @@ The following programs must be available:
 
 The packages are created as follows:
  % autoconf
- % ./configure --with-scala=$TARGET_SCALA_HOME --with-antlr3=$TAREGT_ANTLR_HOME --with-prefix=$TAREGT_JAR_PREFIX
+ % ./configure --with-scala=$TARGET_SCALA_HOME --with-antlr3=$TAREGT_ANTLR_HOME [--prefix=$target_prefix]
  % make
  % make packages
 
@@ -111,7 +111,7 @@ Variables:
    (/usr/share/scala for example for system wide scala in Ubuntu).
  * TARGET_ANTLR_HOME - antlr home location on the system, where package will be installed
    (/usr/share/java for example for system wide antlr in Ubuntu).
- * TAREGT_JAR_PREFIX - prefix for jar file installation (/usr/local/share/pencil for example).
+ * TAREGT_PREFIX - prefix for file installation (/usr/local/ by default).
 
 After the package is built it can be installed as follows:
 % sudo dpkg -i pencil-tools.deb # for deb package

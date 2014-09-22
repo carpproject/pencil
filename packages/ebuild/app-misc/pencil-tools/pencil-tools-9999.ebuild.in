@@ -41,7 +41,7 @@ src_prepare() {
 }
 
 src_configure() {
-    econf --with-scala=@SCALA_HOME@ --with-antlr3=@ANTLR_HOME@ --with-prefix=@JAR_PREFIX@
+    econf --with-scala=@SCALA_HOME@ --with-antlr3=@ANTLR_HOME@ --prefix=@prefix@
 }
 
 src_install() {
