@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014, ARM Limited
+ * Copyright (c) 2014, Realeyes
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +33,16 @@
 #define __pencil_assert(expr)
 
 /* Additional PENCIL types not in C99 */
-#define half float
-#define bool int
+/* half */
+#if __ARM_FP16_ARGS
+  /* use __fp16 only if usable as arguments (some older ARM targets only supports it in structs or arrays) */
+  #define half __fp16
+#else
+  /* 16-bit floating-point is not supported: fallback to float */
+  #define half float
+#endif
+
+/* bool */
+#include <stdbool.h>
 
 #endif
