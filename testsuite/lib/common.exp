@@ -160,7 +160,7 @@ proc analyze {} {
 }
 
 proc compile_c_weak {} {
-  spawn gcc -std=c99 -I../etc/pencil_headers -include "code/carp-common.h" "$::output_filename" -c -o /dev/null
+  spawn gcc -std=c99 -I ../pencil-util/include -include "code/carp-common.h" "$::output_filename" -c -o /dev/null
   catch wait result
   set code [lindex $result 3]
   if {$code != 0} {
@@ -198,7 +198,7 @@ proc prepare_for_compilation {} {
 
 proc compile_c {} {
     prepare_for_compilation
-    spawn gcc -std=c99 -I../etc/pencil_headers -include "code/carp-common.h"  "${::output_filename}" -o "${::binary}"
+    spawn gcc -std=c99 -I../pencil-util/include -include "code/carp-common.h"  "${::output_filename}" -o "${::binary}"
     catch wait result
     set code [lindex $result 3]
     if {$code != 0} {

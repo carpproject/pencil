@@ -1,0 +1,3 @@
+[submodule "pencil-util"]
+	path = pencil-util
+	url = http://github.com/carpproject/pencil-util
