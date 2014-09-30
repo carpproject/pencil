@@ -11,6 +11,12 @@ Coding Style
 C      - please follow linux kernel coding style [https://www.kernel.org/doc/Documentation/CodingStyle]
 Scala  - please follow Scala Style Guide [http://docs.scala-lang.org/style]
 
+Documentation
+-------------
+Generated SCALA docs are available here:
+ * PENCIL IR: http://carpproject.github.io/pencil/index.html
+ * Optimizations: http://carpproject.github.io/optimizations/index.html
+
 
 Repository Contents
 -------------------

@@ -70,11 +70,11 @@ docs:${DOCS:%=%-docs}
 
 pencil-docs:
 	mkdir -p ./docs/pencil/html
-	$(SCALADOC) -d ./docs/pencil/html  `find ./src/scala/com/arm/carp/pencil -name '*.scala'`
+	$(SCALADOC) -d ./docs/pencil/html  `find ./src/scala/com/arm/carp/pencil -name '*.scala'` `find ./gen/scala -name '*.scala'`
 
 optimizations-docs:
 	mkdir -p ./docs/optimizations/html
-	$(SCALADOC) -d ./docs/optimizations//html  `find ./src/scala/com/arm/carp/pencil -name '*.scala'` `find ./src/scala/com/arm/carp/apps/optimizer/passes/ -name '*.scala'`
+	$(SCALADOC) -d ./docs/optimizations//html  `find ./src/scala/com/arm/carp/pencil -name '*.scala'` `find ./src/scala/com/arm/carp/apps/optimizer/passes/ -name '*.scala'` `find ./gen/scala -name '*.scala'`
 
 docs-clean:${DOCS:%=%-docs-clean}
 
