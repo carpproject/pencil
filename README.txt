@@ -108,16 +108,15 @@ The following programs must be available:
 
 The packages are created as follows:
  % autoconf
- % ./configure --with-scala=$TARGET_SCALA_HOME --with-antlr3=$TAREGT_ANTLR_HOME [--prefix=$target_prefix]
+ % ./configure [--prefix=$target_prefix]
  % make
  % make packages
 
 Variables:
- * TARGET_SCALA_HOME - scala home location on the system, where package will be installed
-   (/usr/share/scala for example for system wide scala in Ubuntu).
- * TARGET_ANTLR_HOME - antlr home location on the system, where package will be installed
-   (/usr/share/java for example for system wide antlr in Ubuntu).
  * TAREGT_PREFIX - prefix for file installation (/usr/local/ by default).
+
+When installed the package will use the system scala compiler and antlr jars
+from the system CLASSPATH.
 
 After the package is built it can be installed as follows:
 % sudo dpkg -i pencil-tools.deb # for deb package

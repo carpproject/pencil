@@ -24,8 +24,6 @@ JAR_PREFIX=@prefix@/share/pencil
 
 optimizerjar="$JAR_PREFIX/optimizer.jar"
 
-SCALA_HOME=@SCALA_HOME@
-ANTLR_HOME=@ANTLR_HOME@
-export CLASSPATH=$ANTLR_HOME/ant-antlr3.jar:$ANTLR_HOME/antlr3.jar:$JAR_PREFIX/pencil.jar
+export CLASSPATH=${CLASSPATH}:$JAR_PREFIX/pencil.jar
 
-$SCALA_HOME/bin/scala "$optimizerjar" "$@"
+scala "$optimizerjar" "$@"
