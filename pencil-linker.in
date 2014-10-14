@@ -26,4 +26,4 @@ linkerjar="$JAR_PREFIX/linker.jar"
 
 export CLASSPATH=${CLASSPATH}:$JAR_PREFIX/pencil.jar
 
-scala "$linkerjar" "$@"
+@SCALA_RUNTIME@ "$linkerjar" "$@"

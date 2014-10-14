@@ -25,8 +25,6 @@ scriptpath="`dirname $script`"
 
 linkerjar="$scriptpath/linker.jar"
 
-SCALA_HOME=@SCALA_HOME@
-ANTLR_HOME=@ANTLR_HOME@
-export CLASSPATH=$ANTLR_HOME/ant-antlr3.jar:$ANTLR_HOME/antlr3.jar:$scriptpath/pencil.jar
+export CLASSPATH=@ANT_ANTLR_HOME@/ant-antlr3.jar:@ANTLR_HOME@/antlr3.jar:$scriptpath/pencil.jar
 
-$SCALA_HOME/bin/scala "$linkerjar" "$@"
+@SCALA_RUNTIME@ "$linkerjar" "$@"

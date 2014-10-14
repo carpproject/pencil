@@ -26,4 +26,4 @@ optimizerjar="$JAR_PREFIX/optimizer.jar"
 
 export CLASSPATH=${CLASSPATH}:$JAR_PREFIX/pencil.jar
 
-scala "$optimizerjar" "$@"
+@SCALA_RUNTIME@ "$optimizerjar" "$@"

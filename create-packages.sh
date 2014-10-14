@@ -44,6 +44,3 @@ dpkg-deb -b ${WORK_ROOT} ${DEB_PACKAGE}
 
 # Create RPM package
 alien --to-rpm ${DEB_PACKAGE}
-
-# Create ebuild
-cp ${GENTOO_EBUILD} .
