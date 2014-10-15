@@ -80,15 +80,6 @@ abstract class NumericType(uconst: Boolean) extends ScalarType(uconst) {
 }
 
 /**
- * General numeric type.
- *
- * This type is only used to declare intrinsics.
- */
-case object GenType extends NumericType(true) {
-  def updateConst(in: Boolean) = this
-}
-
-/**
  * Boolean type representation.
  *
  * PENCIL boolean can only be converted to boolean (not to integer and/or floating point)

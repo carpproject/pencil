@@ -233,23 +233,6 @@ object ConstantPropagation extends Pass("cp") {
     walkScalarExpression(getTypeSize(in.obj, in.expType))
   }
 
-  override def walkIntrinsicCallExpression (exp: IntrinsicCallExpression) = {
-    val nargs = exp.args.map(walkScalarExpression(_)._1)
-    val res = (exp.name, nargs) match {
-      case ("max", Seq(arg1: IntegerConstant, arg2: IntegerConstant)) => if (arg1.value > arg2.value) arg1 else arg2
-      case ("fmax", Seq(arg1: FloatConstant, arg2: FloatConstant)) => if (arg1.value > arg2.value) arg1 else arg2
-
-      case ("min", Seq(arg1: IntegerConstant, arg2: IntegerConstant)) => if (arg1.value < arg2.value) arg1 else arg2
-      case ("fmin", Seq(arg1: FloatConstant, arg2: FloatConstant)) => if (arg1.value < arg2.value) arg1 else arg2
-
-      case ("abs", Seq(arg: IntegerConstant)) => if (arg.value >= 0) arg else new IntegerConstant(arg.expType, -arg.value)
-      case ("fabs", Seq(arg: FloatConstant)) => if (arg.value >= 0) arg else new FloatConstant(arg.expType, -arg.value)
-
-      case _ => exp.copy(args = nargs)
-    }
-    (res, None)
-  }
-
   override def walkAssignment(in: AssignmentOperation) = {
     in.rvalue = walkScalarExpression(in.rvalue)._1
     in.lvalue match {

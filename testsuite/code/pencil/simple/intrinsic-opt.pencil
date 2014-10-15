@@ -26,8 +26,8 @@ void intrinsic_opt (int a[1], int b[1], double c[1], double d[1], int e[1])
 {
   a[0] = max(2, 4);
   b[0] = min(5, 1);
-  c[0] = max(42.1, 654.321);
-  d[0] = min(-42.1, -321.7);
+  c[0] = fmax(42.1, 654.321);
+  d[0] = fmin(-42.1, -321.7);
   e[0] = max(12, min(42, 10+13));
 }
 

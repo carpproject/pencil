@@ -33,18 +33,7 @@
 
     <property name="parser-loc"  location="${gen}/java/com/arm/carp/${grammar}/parser"/>
 
-    <property name="intrinsics-scala-loc" location="${gen}/scala/com/arm/carp/${grammar}/"/>
     <property name="versioninfo-scala-loc" location="${gen}/scala/com/arm/carp/apps"/>
-
-    <target name="generate-builtins">
-      <mkdir dir="${intrinsics-scala-loc}"/>
-      <exec executable="perl" dir="${res}/intrinsics">
-        <arg value="gen.pl"/>
-        <arg value="intrinsics.def"/>
-        <arg value="${intrinsics-scala-loc}/BuiltIn.scala"/>
-        <arg value="scala"/>
-      </exec>
-    </target>
 
     <target name="generate-versioninfo">
       <mkdir dir="${versioninfo-scala-loc}"/>
@@ -59,7 +48,7 @@
     <property name="scala.home" value="${env.SCALA_HOME}"/>
     <property name="antlr.home" value="${env.ANTLR_HOME}"/>
 
-    <target name="init" depends="generate-builtins,generate-versioninfo">
+    <target name="init" depends="generate-versioninfo">
       <taskdef resource="scala/tools/ant/antlib.xml">
         <classpath>
           <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
@@ -117,7 +106,6 @@
           <pathelement location="${scala.home}/lib/scala-library.jar"   />
         </classpath>
         <src>
-          <pathelement path="${intrinsics-scala-loc}"/>
           <pathelement path="${src}/scala/com/arm/carp/pencil/"/>
         </src>
       </scalac>

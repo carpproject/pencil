@@ -43,24 +43,42 @@ import java.io.File
   */
 
 class PencilFrontEnd {
-  def parse(file: String, debug: Boolean, static: Boolean = false): Option[Program] = {
+
+  var error = false
+
+  def parse_file(file: String) = {
     val input = {
       if (file.equals("")) {
-        new ANTLRInputStream(System.in)
+        Some(new ANTLRInputStream(System.in))
       }
       else {
         if (!(new File(file)).exists()) {
           System.err.println("File " + file + " not found")
-          return None
+          error = true
+          None
+        } else {
+          Some(new ANTLRFileStream(file))
         }
-        new ANTLRFileStream(file)
       }
     }
-    val lexer = new pencilLexer(input)
-    val tokens = new CommonTokenStream(lexer)
-    val parser = new pencilParser(tokens)
-    val pencil = parser.program()
-    if (parser.isCorrect()) {
+    input match {
+      case Some(stream) => {
+        val lexer = new pencilLexer(stream)
+        val tokens = new CommonTokenStream(lexer)
+        val parser = new pencilParser(tokens)
+        val res = parser.program()
+        error = error || !parser.isCorrect()
+        Some(res)
+      }
+      case None => None
+    }
+  }
+
+  def parse(file: String, headers: Seq[String], debug: Boolean, static: Boolean = false): Option[Program] = {
+
+    error = false
+    val pencil = (headers.map(parse_file) :+ parse_file(file)).flatten
+    if (!error) {
       val transformer = new Transformer(file)
       transformer.transformProgram(pencil, debug, static)
     } else {

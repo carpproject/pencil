@@ -28,6 +28,7 @@ import java.io.PrintWriter
 import java.io.File
 import com.arm.carp.frontends.pencil.PencilFrontEnd
 import com.arm.carp.apps.optimizer.passes._
+import scala.collection.mutable.ListBuffer
 
 /**
   * Optimizer application.
@@ -40,6 +41,8 @@ object Main {
 
   private var inputFileName: Option[String] = None
   private var outputFileName: Option[String] = None
+
+  private val headers = ListBuffer[String]()
 
   private val passes = new PassManager
 
@@ -81,6 +84,7 @@ object Main {
   private def parseCommandLine(args: List[String]): Boolean = {
     args match {
       case Nil => inputFileName.isDefined
+      case "--include" :: x :: rest => headers.append(x); parseCommandLine(rest)
       case "-" :: rest =>
         inputFileName = Some("")
         parseCommandLine(rest)
@@ -126,7 +130,7 @@ object Main {
   }
 
   private def sayHelp() {
-    System.err.println("Usage: input-file [--version] [-o output-file] [-f[no-]all] [-dump-passes] [passes options]")
+    System.err.println("Usage: input-file [--version] [-o output-file] [-f[no-]all] [-dump-passes] [passes options] [--include header]*")
     System.err.println("       if input-file is a single hyphen (-) then input is taken from standard input")
     System.err.println("       passes can enabled/disabled with -f[-no]<PASS NAME>[idx] option")
     System.err.println("       use idx after pass name to disable specific occurence of pass")
@@ -156,7 +160,7 @@ object Main {
     }
 
     val frontend = new PencilFrontEnd
-    val pencil = frontend.parse(inputFileName.get, debug)
+    val pencil = frontend.parse(inputFileName.get, headers, debug)
 
     if (pencil.isEmpty) {
       System.exit(-1)

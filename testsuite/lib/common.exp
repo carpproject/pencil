@@ -81,7 +81,7 @@ proc run_tool {} {
     set expected $error
   }
 
-  spawn "../$::tool_name" -o "$::output_filename" "$::input_filename" {*}$::additional_option {*}$::additional_files
+  spawn "../$::tool_name" -o "$::output_filename" "$::input_filename" {*}$::additional_option {*}$::additional_files --include  code/pencil.h
 
   # Collect all output
   set lines {}

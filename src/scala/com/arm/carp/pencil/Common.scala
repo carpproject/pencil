@@ -385,23 +385,6 @@ trait Checks extends Walker{
     super.walkSizeofExpression(in)
   }
 
-  /**
-    * Check intrinsic call expression.
-    *
-    * Intrinsic function must be known to the compiler (see [[BuiltIn.function]]).
-    * The number and type of the arguments must correspond to the
-    * declaration, known by the compiler.
-    */
-  override def walkIntrinsicCallExpression(in: IntrinsicCallExpression) = {
-    assert(BuiltIn.function.contains(in.name), in, "unknown intrinsic")
-    val nargs = BuiltIn.function(in.name)
-    assert(in.args.size == nargs, in, "incorrect number of arguments")
-    for (arg <- in.args) {
-      assert(arg.expType.convertible(GenType), arg, "invalid argument for PENCIL intrinsic")
-    }
-    super.walkIntrinsicCallExpression(in)
-  }
-
   override def walkFunction(in: Function) = {
     in.access match {
       case Some(body) => walkFunction(body)
@@ -461,8 +444,6 @@ trait Common {
       case (s1: StructType, s2: StructType) =>
         Checkable.assert(s1.compatible(s2), (t1, t2), "Invalid types to uplift");
         s1
-      case (GenType, _) => t2
-      case (_, GenType) => t1
       case (_: BooleanType, _: BooleanType) => BooleanType(true)
       case (_: IntegerType, _: FloatType) => t2.updateConst(true)
       case (_: FloatType, _: IntegerType) => t1.updateConst(true)

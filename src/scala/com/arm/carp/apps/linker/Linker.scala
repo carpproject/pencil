@@ -112,6 +112,7 @@ object Main extends Common {
   }
 
   private val inputFileNames = ListBuffer[(String, Boolean)]()
+  private val headers = ListBuffer[String]()
   private var outputFileName: Option[String] = None
 
   private def parseCommandLine(args: List[String]): Unit = {
@@ -128,12 +129,13 @@ object Main extends Common {
         prototypes_only = true
         parseCommandLine(rest)
       case "--static" :: x :: rest => inputFileNames.append((x, true)); parseCommandLine(rest)
+      case "--include" :: x :: rest => headers.append(x); parseCommandLine(rest)
       case x :: rest => inputFileNames.append((x, false)); parseCommandLine(rest)
     }
   }
 
   private def sayHelp() {
-    System.err.println("Usage: [[--static] input-file]* [--version] [-o output-file]")
+    System.err.println("Usage: [[--static] input-file]* [--version] [-o output-file] [--include header]*")
     System.exit(0)
   }
 
@@ -160,7 +162,7 @@ object Main extends Common {
     val buff = new ListBuffer[Program]()
 
     for ((prog, static) <- inputFileNames) {
-      val pencil = frontend.parse(prog, debug, static)
+      val pencil = frontend.parse(prog, headers, debug, static)
       pencil match {
         case None => complain("one of the input files contains an error")
         case Some(pprogram) =>

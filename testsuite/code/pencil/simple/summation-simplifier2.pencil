@@ -33,4 +33,4 @@ int foo(int b, int c, int n) {
 /* all {assert(foo(11, 7, 3)==1234);} */
 /* optimizer {@check {CHECK: for}} */
 /* optimizer {@check {CHECK-NOT: 3+3}} */
-/* optimizer {@check {CHECK-NOT: a_4+a_4}} */
+/* optimizer {@check {CHECK-NOT: a_{{[0-9]*}}+a_{{[0-9]*}}}} */

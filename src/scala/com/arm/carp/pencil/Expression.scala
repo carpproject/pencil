@@ -378,10 +378,6 @@ case class CallExpression(func: Function, args: Seq[Expression]) extends ScalarE
   val expType = func.retType.updateConst(true)
 }
 
-case class IntrinsicCallExpression(name: String, args: Seq[ScalarExpression]) extends ScalarExpression {
-  val expType = args(0).expType.updateConst(true)
-}
-
 case class SizeofExpression(obj: Type) extends ScalarExpression {
   val expType = IntegerType(false, 32, true)
 }
@@ -538,7 +534,6 @@ object ExpressionAnalyzer {
       case exp: DoubleArgumentExpression[_, _] => getScalarVariables(exp.op1) ++ getScalarVariables(exp.op2)
       case exp: TripleArgumentExpression[_, _, _] => getScalarVariables(exp.op1) ++ getScalarVariables(exp.op2) ++ getScalarVariables(exp.op3)
       case call: CallExpression => call.args.map(getScalarVariables).fold(Set())((b, a) => b ++ a)
-      case icall: IntrinsicCallExpression => icall.args.map(getScalarVariables).fold(Set())((b, a) => b ++ a)
       case size: SizeofExpression => Set()
       case _ => Checkable.ice(in, "unexpected expression")
     }

@@ -45,6 +45,7 @@ optimizer:
 check:${ALL:%=%-check}
 
 %-check:
+	cpp -P -D__PENCIL__ pencil-util/include/pencil.h > testsuite/code/pencil.h
 	cd testsuite/ && runtest --tool $*
 
 packages-clean:

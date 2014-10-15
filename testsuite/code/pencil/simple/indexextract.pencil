@@ -29,5 +29,5 @@ int f (int i, int A[restrict const static 3])
 }
 /* all {@assert {f(1, A) == 44}} */
 /* optimizer {@check {CHECK: idx}} */
-/* optimizer {@check {CHECK: A_2[}} */
-/* optimizer {@check {CHECK-NOT: i_1*i_1}} */
+/* optimizer {@check {CHECK: A_{{[0-9]*}}[idx}} */
+/* optimizer {@check {CHECK-NOT: i_{{[0-9]*}}*i_{{[0-9]}}*}} */

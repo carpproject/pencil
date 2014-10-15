@@ -131,11 +131,6 @@ trait ExpressionWalker extends CommonOps {
     (in.copy(op1 = op1._1), op1._2)
   }
 
-  def walkIntrinsicCallExpression(in: IntrinsicCallExpression): AnnotatedScalarExpression = {
-    val args = in.args.map(walkScalarExpression)
-    (in.copy(args = args.map(_._1)), make(args.map(_._2):_*))
-  }
-
   /** All raw variables must be eliminated before leaving the front-end.  */
   def walkScalarVariableInt(in: ScalarVariable): AnnotatedScalarExpression = {
     Checkable.ice(in, "scalar variable without references are forbidden by default")
@@ -165,7 +160,6 @@ trait ExpressionWalker extends CommonOps {
       case exp:ScalarIdxExpression => walkScalarIdxExpression(exp)
       case exp:ScalarStructSubscription => walkScalarStructSubscription(exp)
       case exp:CallExpression => walkCallExpression(exp)
-      case exp:IntrinsicCallExpression => walkIntrinsicCallExpression(exp)
       case exp:SizeofExpression => walkSizeofExpression(exp)
       case exp:ConvertExpression => walkConvertExpression(exp)
       case _ => Checkable.ice(in, "unexpected expression")

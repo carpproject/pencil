@@ -427,25 +427,8 @@ class Transformer(val filename: String) extends Common with Assertable {
         }
       }
       case None => {
-        BuiltIn.function.get(fname.getText) match {
-          case Some(nargs) =>
-            if (!check(nargs == args.size, in, "invalid number of intrinsic arguments")) {
-              None
-            } else {
-              val valid = (args).forall(arg => arg.expType.convertible(GenType))
-              if (!check(valid, in, "invalid intrinsic arguments")) {
-                None
-              } else {
-                Some(IntrinsicCallExpression(fname.getText, args.map(_ match {
-                  case exp: ScalarExpression => exp
-                  case exp: Expression => ice(exp, "unexpected expression")
-                })))
-              }
-            }
-          case None =>
-            complain(fname, "Function " + fname.getText + " undeclared")
-            None
-        }
+        complain(in, "Unknown function")
+        None
       }
     }
   }
@@ -1539,20 +1522,25 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  def transformProgram(in: program_return, debug: Boolean, static: Boolean): Option[Program] = {
+  def transformSingleFile(in: program_return, debug: Boolean, static: Boolean) = {
     val tree = in.getTree.asInstanceOf[Tree]
     checkNode(tree, PROGRAM, "PROGRAM")
     if (debug) {
       printTree(tree, "")
     }
-    varmap.push
-    val functions = (intWrapper(0) to (tree.getChildCount - 1)).map(num => transformTopDecl(tree.getChild(num), static))
-    varmap.pop
+    val res = (intWrapper(0) to (tree.getChildCount - 1)).map(num => transformTopDecl(tree.getChild(num), static))
     callGraph.getRecursion match {
       case None =>
       case Some(function) =>
         complain(tree, "Possible recursion detected for function " + function.name)
     }
+    res
+  }
+
+  def transformProgram(in: Seq[program_return], debug: Boolean, static: Boolean): Option[Program] = {
+    varmap.push
+    val functions = in.map(transformSingleFile(_, debug, static)).flatten
+    varmap.pop
     if (!error) {
       val res = new Program(functions.filter(_.isDefined).map(_.get), structtypes.toList, consts.toList)
       Checkable.walkProgram(res)

@@ -108,12 +108,6 @@ class Printer extends Assertable {
         processWithSep(args, ",")
         buff.append(")")
       }
-      case IntrinsicCallExpression(func, args) => {
-        buff.append(func)
-        buff.append("(")
-        processWithSep(args, ",")
-        buff.append(")")
-      }
       case ScalarStructSubscription(base, field) => processStructSubs(base, field, base.expType.asInstanceOf[StructType])
       case ArrayStructSubscription(base, field) => processStructSubs(base, field, base.expType.asInstanceOf[StructType])
       case SizeofExpression(obj) =>
@@ -458,22 +452,25 @@ class Printer extends Assertable {
     }
   }
 
-  def toPencil(in: Program, prototypes: Boolean, fbodies: Boolean): String = {
+  def toPencil(in: Program, prototypes: Boolean, fbodies: Boolean,
+               external_prototypes: Boolean = false): String = {
     processDeclarations(in.consts)
     processStructDefinitions(in.types)
     if (prototypes) {
       buff.append("\n// Function prototypes\n")
       for (func <- in.functions) {
-        processFunctionDeclaration(func)
-        if (func.access.isDefined) {
-          buff.append(" __attribute__((access(")
-          buff.append(getFuncName(func.access.get))
-          buff.append(")))")
+        if (func.ops.isDefined || external_prototypes) {
+          processFunctionDeclaration(func)
+          if (func.access.isDefined) {
+            buff.append(" __attribute__((access(")
+            buff.append(getFuncName(func.access.get))
+            buff.append(")))")
+          }
+          if (func.const) {
+            buff.append(" __attribute__((const))")
+          }
+          buff.append(";\n")
         }
-        if (func.const) {
-          buff.append(" __attribute__((const))")
-        }
-        buff.append(";\n")
       }
     }
     if (fbodies) {
