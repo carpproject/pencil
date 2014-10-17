@@ -117,7 +117,7 @@ object DeadCodeElimination extends Pass("dce") {
 
   private def noSideEffects(in: Expression): Boolean = {
     in match {
-      case _: CallExpression => false
+      case call: CallExpression => call.func.const && call.args.forall(noSideEffects(_))
       case _: ArraySubscription => false
       case _: VariableRef => true
       case _: Constant => true
