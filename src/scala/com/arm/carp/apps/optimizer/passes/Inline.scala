@@ -42,7 +42,9 @@ object Inline extends Pass("inline") {
 
   /** Create a copy of the function suitable for inlining. */
   private class FunctionUpdater(val result: Option[ScalarVariableDef],
-    val scalars: ScalarVarMap, val arrays: ArrayVarMap) extends FunctionCloner {
+    val scalars: ScalarVarMap, val arrays: ArrayVarMap,
+    val eliminate_scops: Boolean) extends FunctionCloner {
+
     var returnCount = 0
     var arrayStack = 0
 
@@ -92,6 +94,9 @@ object Inline extends Pass("inline") {
     }
 
     override def walkOperation(in: Operation) = {
+      if (eliminate_scops) {
+        in.scop = false
+      }
       if (returnCount < 2) {
         super.walkOperation(in)
       } else {
@@ -159,7 +164,7 @@ object Inline extends Pass("inline") {
     Checkable.assert(in.args.size == in.func.params.size, in, "invalid number of arguments for function call")
     val arrayMapping = getArrayMapping(in)
     val scalarMapping = getScalarMapping(in)
-    val updater = new FunctionUpdater(result, scalarMapping, arrayMapping)
+    val updater = new FunctionUpdater(result, scalarMapping, arrayMapping, in_scop)
     val scalarArgsInit = getInitialCode(in, scalarMapping)
     val ops = updater.update(in.func.ops.get)
     if (updater.returnCount > 1 || updater.returnCount == 1 && !lastIsReturn(in.func.ops.get)) {

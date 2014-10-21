@@ -145,6 +145,8 @@ class Transformer(val filename: String) extends Common with Assertable {
   private val consts = ListBuffer[Variable]()
   private var error = false
 
+  private var in_scop = false
+
   private val varmap = new NamespaceStack
   private val fmap = Map[String, Function]()
   private val typemap = Map[String, Type]()
@@ -986,11 +988,15 @@ class Transformer(val filename: String) extends Common with Assertable {
         check(!access, in, "pragma scop cannot be used inside access blocks")
         (in.getChild(0), true)
       } else {(in, false)})
+    check(!in_scop || !scop, in, "Nested SCoPs are forbidden")
+    val old_scop = in_scop
+    in_scop = in_scop || scop
     val ret = transformStatement(statement, access)
     ret match {
       case Some(statement) => statement.scop = scop
       case None =>
     }
+    in_scop = old_scop
     ret
   }
 

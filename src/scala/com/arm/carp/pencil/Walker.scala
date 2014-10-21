@@ -68,6 +68,10 @@ trait Walker extends Assertable with CommonOps with ExpressionWalker {
 
   val config: WalkerConfigStorage
 
+  private var in_scop_flag = false
+
+  def in_scop = in_scop_flag
+
   /**
    * Default action for leaf processing.
    * Can be overridden to call ICE (to ensure that all processing is implemented by pass).
@@ -195,7 +199,9 @@ trait Walker extends Assertable with CommonOps with ExpressionWalker {
   }
 
   def walkOperation(in: Operation): Option[Operation] = {
-    in match {
+    val old_scop = in_scop_flag
+    in_scop_flag = in_scop_flag || in.scop
+    val res = in match {
       case op: BlockOperation => walkBlock(op)
       case op: AssignmentOperation => walkAssignment(op)
       case op: ForOperation => walkFor(op)
@@ -209,6 +215,8 @@ trait Walker extends Assertable with CommonOps with ExpressionWalker {
       case op: ArrayDeclOperation => walkArrayDeclOperation(op)
       case op => ice(op, "unexpected operation")
     }
+    in_scop_flag = old_scop
+    res
   }
 
   def walkBlock(in: Option[BlockOperation]): Option[BlockOperation] = {

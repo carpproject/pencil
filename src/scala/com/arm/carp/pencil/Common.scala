@@ -312,6 +312,7 @@ trait Checks extends Walker{
 
   /** Same operation object can not be used twice.  */
   override def walkOperation(in: Operation) = {
+    assert(!in_scop || !in.scop, in, "nested SCoPs are forbidden")
     assert(!ops.contains(in), in, "same operation object is used twice")
     ops+=in
     super.walkOperation(in)
