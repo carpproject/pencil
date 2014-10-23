@@ -25,7 +25,7 @@ void foo_summary(int A)
 }
 
 
-int foo(int A) __attribute__((access(foo_summary)))
+int foo(int A) __attribute__((pencil_access(foo_summary)))
 {
   return A;
 }

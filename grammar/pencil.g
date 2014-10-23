@@ -104,6 +104,7 @@ tokens
   IVDEP='ivdep';
   INDEPENDENT='independent';
   ACCESS='access';
+  PENCIL_ACCESS='pencil_access';
   PROGRAM;
   FUNCTION;
   FUNCTION_ARGS;
@@ -300,8 +301,8 @@ function:
 TYPE_STATIC? function_type NAME BRACKET_LEFT function_args BRACKET_RIGHT attribute* function_body
   -> ^(FUNCTION function_type NAME function_args ^(FUNCTION_ATTRS TYPE_STATIC? attribute*) function_body);
 
-attr: TYPE_CONST -> ^(CONST_FUNCTION)|
-      ACCESS BRACKET_LEFT NAME BRACKET_RIGHT -> ^(ACCESS_FUNCTION NAME);
+attr: TYPE_CONST -> ^(CONST_FUNCTION)
+      | PENCIL_ACCESS BRACKET_LEFT NAME BRACKET_RIGHT -> ^(ACCESS_FUNCTION NAME);
 
 attribute:(ATTRIBUTE BRACKET_LEFT BRACKET_LEFT attr BRACKET_RIGHT BRACKET_RIGHT) -> attr;
 
