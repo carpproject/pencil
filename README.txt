@@ -80,6 +80,9 @@ Build requirements
     FileCheck
     If present this tool will be used to perform more accurate testing
     of the PENCIL tools.
+  * pencil-util submodule:
+    % git submodule init
+    % git submodule update
 
 This build has been tested on the following configuration:
  % scalac -version
