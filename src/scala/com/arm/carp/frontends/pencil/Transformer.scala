@@ -772,10 +772,11 @@ class Transformer(val filename: String) extends Common with Assertable {
     val body = transformBlock(in.getChild(1), access)
     guard match {
       case Some(guard) => {
-        if (check(guard.expType.isBoolean, in, "invalid guard expression")) {
+        if (check(guard.expType.convertible(BooleanType(true)), in, "invalid guard expression")) {
+          val actual_guard = convertScalar(guard, BooleanType(true))
           in.getChildCount match {
-            case 2 => Some(new IfOperation(guard, body, None))
-            case 3 => Some(new IfOperation(guard, body, Some(transformBlock(in.getChild(2), access))))
+            case 2 => Some(new IfOperation(actual_guard, body, None))
+            case 3 => Some(new IfOperation(actual_guard, body, Some(transformBlock(in.getChild(2), access))))
           }
         } else {
           None
@@ -793,8 +794,8 @@ class Transformer(val filename: String) extends Common with Assertable {
     val body = transformBlock(in.getChild(1), access)
     guard match {
       case Some(guard) =>
-        if (check(guard.expType.isBoolean, in, "invalid guard expression")) {
-          Some(new WhileOperation(guard, body))
+        if (check(guard.expType.convertible(BooleanType(true)), in, "invalid guard expression")) {
+          Some(new WhileOperation(convertScalar(guard, BooleanType(true)), body))
         } else {
           None
         }

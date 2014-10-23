@@ -76,7 +76,7 @@ abstract class ScalarType(uconst: Boolean) extends Type(uconst) {
 
 abstract class NumericType(uconst: Boolean) extends ScalarType(uconst) {
   override val isNumeric = true
-  override def convertible(t: Type) = t.isNumeric
+  override def convertible(t: Type) = t.isNumeric || t.isBoolean
 }
 
 /**
