@@ -79,6 +79,7 @@ object Main {
     passes.addPass(DeadCodeElimination, "dce2", true)
     passes.addPass(IndexExtraction, "index-extraction0", false)
     passes.addPass(Linearize, "linearize2", true)
+    passes.addPass(SplitFile, "splitfile0", false)     // Should be the last one
   }
 
   private def parseCommandLine(args: List[String]): Boolean = {

@@ -59,6 +59,15 @@ class CallGraph {
   }
 
   /**
+   * Return all functions called directly or indirectly by the given function.
+   */
+  def getAllCallees(in: Function): HashSet[Function] = {
+    val calls = getCalls(in)
+    calls.foreach(i => calls ++= getAllCallees(i))
+    calls
+  }
+
+  /**
     * Check for recursion.
     *
     * @returns Function, which is recursively calling itself (directly or indirectly).
