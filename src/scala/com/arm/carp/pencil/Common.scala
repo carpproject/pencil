@@ -387,10 +387,6 @@ trait Checks extends Walker{
   }
 
   override def walkFunction(in: Function) = {
-    in.access match {
-      case Some(body) => walkFunction(body)
-      case None =>
-    }
     current_function = Some(in)
     super.walkFunction(in)
   }
