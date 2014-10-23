@@ -145,6 +145,13 @@ object DeadCodeElimination extends Pass("dce") {
     super.walkCallExpression(in)
   }
 
+  override def walkAccessFunction(in: Option[Function]) = {
+    in match {
+      case Some(function) => called.add(function)
+      case None =>
+    }
+  }
+
   override def walkFunctions(in: Traversable[Function]) = {
     super.walkFunctions(in).filter(func => !func.local || called.contains(func))
   }

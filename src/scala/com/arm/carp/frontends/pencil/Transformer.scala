@@ -1059,7 +1059,10 @@ class Transformer(val filename: String) extends Common with Assertable {
         case CONST_FUNCTION => const = true
         case ACCESS_FUNCTION => {
           fmap.get(attr.getChild(0).getText) match {
-            case Some(function) => access = Some(function)
+            case Some(function) => {
+              access = Some(function)
+              check(function.ops.isDefined, in, "Missing definition for summary function")
+            }
             case None => {
               lerror = true
               complain(in, "invalid function attributes")

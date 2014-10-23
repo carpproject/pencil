@@ -20,14 +20,11 @@
  * THE SOFTWARE.
  */
 
-void foo_summary(int A)
-{
-}
+void foo_summary(int A, int B[10]);
 
 
-int foo(int A) __attribute__((pencil_access(foo_summary)))
+int foo(int A, int B[10]) __attribute__((pencil_access(foo_summary))) /* all {@error} */
 {
+  B[8] = 123 + A;
   return A;
 }
-
-/* all {@check {CHECK: void foo_summary}} */

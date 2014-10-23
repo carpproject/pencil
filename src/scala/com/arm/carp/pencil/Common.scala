@@ -386,6 +386,15 @@ trait Checks extends Walker{
     super.walkSizeofExpression(in)
   }
 
+
+  override def walkAccessFunction(in: Option[Function]) {
+    in match {
+      case Some(function) =>
+        assert(function.ops.isDefined, function, "Missing body for summary function")
+      case None=>
+    }
+  }
+
   override def walkFunction(in: Function) = {
     current_function = Some(in)
     super.walkFunction(in)
