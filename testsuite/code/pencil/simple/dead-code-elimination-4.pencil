@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-static int abs(int i)
+static int my_abs(int i)
 {
     int result;
     if (i > 0) {
@@ -33,18 +33,16 @@ static int abs(int i)
 
 int bar(int i, int j)
 {
-    if (abs(i) > abs(j)) {
+    if (my_abs(i) > my_abs(j)) {
         return i;
     } else {
         return j;
     }
 }
 
-/* linker {@assert {abs(1) == 1}} */
-/* linker {@assert {abs(-1) == 1}} */
 /* all {@assert {bar(1,2) == 2}} */
 /* all {@assert {bar(-1,-2) == -2}} */
 /* all {@assert {bar(1,-2) == -2}} */
 /* optimizer {@require-option {-finline}} */
 /* optimizer {@require-option {-fdce}} */
-/* optimizer {@check {CHECK-NOT: abs}} */
+/* optimizer {@check {CHECK-NOT: my_abs}} */

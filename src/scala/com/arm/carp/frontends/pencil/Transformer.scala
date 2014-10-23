@@ -1089,7 +1089,7 @@ class Transformer(val filename: String) extends Common with Assertable {
             complain(in, "Function " + nname.getText + " has already been declared")
             None
           } else {
-            val correct = compatibleWithFunction(function, _type.get, params)
+            val correct = compatibleWithFunction(function, _type.get, params) && (function.local == local || static)
             if (check(correct, in, "function declaration conflicts with previous declaration")) {
               function.ops = fbody
               function.params = params
