@@ -459,7 +459,7 @@ class Printer extends Assertable {
     if (prototypes) {
       buff.append("\n// Function prototypes\n")
       for (func <- in.functions) {
-        if (func.ops.isDefined || external_prototypes) {
+        if (func.ops.isDefined || !func.fromHeader || external_prototypes) {
           processFunctionDeclaration(func)
           if (func.access.isDefined) {
             buff.append(" __attribute__((pencil_access(")

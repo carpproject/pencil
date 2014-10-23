@@ -77,10 +77,11 @@ class PencilFrontEnd {
   def parse(file: String, headers: Seq[String], debug: Boolean, static: Boolean = false): Option[Program] = {
 
     error = false
-    val pencil = (headers.map(parse_file) :+ parse_file(file)).flatten
+    val pencil_headers = headers.map(parse_file).flatten
+    val pencil_prog = parse_file(file)
     if (!error) {
       val transformer = new Transformer(file)
-      transformer.transformProgram(pencil, debug, static)
+      transformer.transformProgram(pencil_prog.get, pencil_headers,  debug, static)
     } else {
       None
     }

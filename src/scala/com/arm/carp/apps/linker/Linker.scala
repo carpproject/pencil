@@ -108,6 +108,8 @@ object Main extends Common {
         consts.append(const)
       }
     }
+    val external = prototypes.values.filter(!functions.contains(_))
+    functions.appendAll(external)
     new Program(functions.toList, structs.toList, consts.toList)
   }
 

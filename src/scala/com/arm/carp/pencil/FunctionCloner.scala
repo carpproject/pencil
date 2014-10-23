@@ -104,6 +104,6 @@ trait FunctionCloner extends Walker {
     */
   def cloneFunction(in: Function, name: String) = {
     reset
-    walkFunction(new Function(name, in.params, in.ops, in.retType, in.access, in.const, true, in.isSummary)).get
+    walkFunction(new Function(name, in.params, in.ops, in.retType, in.access, in.const, true, in.isSummary, false)).get
   }
 }

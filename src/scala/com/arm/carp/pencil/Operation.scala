@@ -209,8 +209,10 @@ class Function(
   val local: Boolean,
   /* Whether this function is a summary function (unused by now). */
   val isSummary: Boolean,
-  /* Unique id of the function.  */
+  /* If function is from header, it's prototype is not printed by Printer.  */
+  val fromHeader: Boolean,
   val uniq_name_if_local: Boolean = true,
+  /* Unique id of the function.  */
   val id: Int = Counter.nextFunction) {
   def getName() = {
     if (local && uniq_name_if_local) {

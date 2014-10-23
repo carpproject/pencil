@@ -1011,7 +1011,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     new BlockOperation(res)
   }
 
-  private def transformFunction(in: Tree, static: Boolean): Option[Function] = {
+  private def transformFunction(in: Tree, static: Boolean, header: Boolean): Option[Function] = {
     varmap.push
     calls.clear
     checkNode(in, FUNCTION, "FUNCTION", 5)
@@ -1084,7 +1084,7 @@ class Transformer(val filename: String) extends Common with Assertable {
       val existing = fmap.get(nname.getText)
       existing match {
         case None =>
-          val res = new Function(name, params, fbody, _type.get, access, const, local || static, false, local)
+          val res = new Function(name, params, fbody, _type.get, access, const, local || static, false, header, local)
           calls.foreach(f => callGraph.addCall(res, f))
           fmap += ((nname.getText, res))
           Some(res)
@@ -1518,9 +1518,9 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformTopDecl(in: Tree, static: Boolean): Option[Function] = {
+  private def transformTopDecl(in: Tree, static: Boolean, header: Boolean): Option[Function] = {
     in.getType match {
-      case FUNCTION => transformFunction(in, static)
+      case FUNCTION => transformFunction(in, static, header)
       case STRUCT =>
         registerStructType(in); None
       case TYPEDEF =>
@@ -1532,13 +1532,13 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  def transformSingleFile(in: program_return, debug: Boolean, static: Boolean) = {
+  def transformSingleFile(in: program_return, debug: Boolean, static: Boolean, header: Boolean) = {
     val tree = in.getTree.asInstanceOf[Tree]
     checkNode(tree, PROGRAM, "PROGRAM")
     if (debug) {
       printTree(tree, "")
     }
-    val res = (intWrapper(0) to (tree.getChildCount - 1)).map(num => transformTopDecl(tree.getChild(num), static))
+    val res = (intWrapper(0) to (tree.getChildCount - 1)).map(num => transformTopDecl(tree.getChild(num), static, header))
     callGraph.getRecursion match {
       case None =>
       case Some(function) =>
@@ -1547,9 +1547,9 @@ class Transformer(val filename: String) extends Common with Assertable {
     res
   }
 
-  def transformProgram(in: Seq[program_return], debug: Boolean, static: Boolean): Option[Program] = {
+  def transformProgram(in: program_return, headers: Seq[program_return], debug: Boolean, static: Boolean): Option[Program] = {
     varmap.push
-    val functions = in.map(transformSingleFile(_, debug, static)).flatten
+    val functions = headers.map(transformSingleFile(_, debug, static, true)).flatten ++ transformSingleFile(in, debug, static, false)
     varmap.pop
     if (!error) {
       val res = new Program(functions.filter(_.isDefined).map(_.get), structtypes.toList, consts.toList)
