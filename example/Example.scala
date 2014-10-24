@@ -88,7 +88,8 @@ object Example {
                                        /* access function */ None,
                                        /* const */ false,
                                        /* static */ false,
-                                       /* is summary */false)
+                                       /* is summary */false,
+                                       /* from header*/false)
 
     List(function)
   }
