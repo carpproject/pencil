@@ -198,7 +198,7 @@ proc prepare_for_compilation {} {
 
 proc compile_c {} {
     prepare_for_compilation
-    spawn gcc -lm -std=c99 -I../pencil-util/include -include "code/carp-common.h"  "${::output_filename}" -o "${::binary}"
+    spawn gcc -std=c99 -I../pencil-util/include -include "code/carp-common.h"  "${::output_filename}" -o "${::binary}" -lm
     catch wait result
     set code [lindex $result 3]
     if {$code != 0} {
