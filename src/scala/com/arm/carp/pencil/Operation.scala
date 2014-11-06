@@ -207,8 +207,8 @@ class Function(
   val const: Boolean,
   /* Whether this function is a static/local function. */
   val local: Boolean,
-  /* Whether this function is a summary function (unused by now). */
-  val isSummary: Boolean,
+  /* Whether this function is a summary function. */
+  var isSummary: Boolean,
   /* If function is from header, it's prototype is not printed by Printer.  */
   val fromHeader: Boolean,
   val uniq_name_if_local: Boolean = true,

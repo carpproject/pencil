@@ -422,19 +422,32 @@ class Printer extends Assertable {
     buff.append(")")
   }
 
+  def processFunctionAttributes(func: Function) = {
+    if (func.access.isDefined) {
+        buff.append(" __attribute__((pencil_access(")
+        buff.append(getFuncName(func.access.get))
+        buff.append(")))")
+      }
+      if (func.const) {
+        buff.append(" __attribute__((const))")
+      }
+  }
+
   /**
    * Print function definition.
    * @param func  Function whose body should be printed.
    * @param csts  Constants defined outside of the function.
    */
-  def processFunctionDefinition(func: Function, csts: Seq[Variable]) = {
+  def processFunctionDefinition(func: Function, csts: Seq[Variable],
+                                attributes: Boolean) = {
     ComputeDeclarations.computeForFunction(func, csts.toSet)
 
     processFunctionDeclaration(func)
 
-    if (func.const) {
-      buff.append(" /*__attribute__((const))*/")
+    if (attributes) {
+      processFunctionAttributes(func)
     }
+
     process(func.ops.get)
     buff.append("\n\n")
   }
@@ -452,32 +465,43 @@ class Printer extends Assertable {
     }
   }
 
+  private def processPrototypes(in: Traversable[Function]) = {
+    for (func <- in) {
+      processFunctionDeclaration(func)
+      processFunctionAttributes(func)
+      buff.append(";\n")
+    }
+  }
+
+  private def processDefinitions(in: Traversable[Function], consts: Seq[Variable], attributes: Boolean) = {
+    for (func <- in.filter(_.ops.isDefined)) {
+      processFunctionDefinition(func, consts, attributes)
+    }
+  }
+
   def toPencil(in: Program, prototypes: Boolean, fbodies: Boolean,
                external_prototypes: Boolean = false): String = {
     processDeclarations(in.consts)
     processStructDefinitions(in.types)
+
+    val (summary, working) = in.functions.partition(_.isSummary)
+
+    if (prototypes) {
+      buff.append("\n// Summary function prototypes\n")
+      processPrototypes(summary)
+    }
+    if (fbodies) {
+      buff.append("\n// Summary function definitions\n")
+      processDefinitions(summary, in.consts, !prototypes)
+    }
+
     if (prototypes) {
       buff.append("\n// Function prototypes\n")
-      for (func <- in.functions) {
-        if (func.ops.isDefined || !func.fromHeader || external_prototypes) {
-          processFunctionDeclaration(func)
-          if (func.access.isDefined) {
-            buff.append(" __attribute__((pencil_access(")
-            buff.append(getFuncName(func.access.get))
-            buff.append(")))")
-          }
-          if (func.const) {
-            buff.append(" __attribute__((const))")
-          }
-          buff.append(";\n")
-        }
-      }
+      processPrototypes(working.filter(func => func.ops.isDefined || !func.fromHeader || external_prototypes))
     }
     if (fbodies) {
       buff.append("\n// Function definitions\n")
-      for (func <- in.functions.filter(_.ops.isDefined)) {
-        processFunctionDefinition(func, in.consts)
-      }
+      processDefinitions(working, in.consts, !prototypes)
     }
     buff.toString
   }

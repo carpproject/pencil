@@ -1063,6 +1063,8 @@ class Transformer(val filename: String) extends Common with Assertable {
             case Some(function) => {
               access = Some(function)
               check(function.ops.isDefined, in, "Missing definition for summary function")
+              check(!function.access.isDefined, in, "Summary function cannot have summary function")
+              function.isSummary = true
             }
             case None => {
               lerror = true
