@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int amin(int A[10])
+int amin(int A[const static 10])
 {
   int i = A[0];
   for (int j = 0; j < 10; j++) {
@@ -30,7 +30,7 @@ int amin(int A[10])
 }
 
 
-int amax(int A[10])
+int amax(int A[const static 10])
 {
   int i = A[0];
   for (int j = 0; j < 10; j++) {

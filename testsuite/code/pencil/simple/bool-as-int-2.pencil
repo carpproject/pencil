@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int foo(int A, int B[10])
+int foo(int A, int B[const static 10])
 {
     while (A) {
         B[1] = 123;

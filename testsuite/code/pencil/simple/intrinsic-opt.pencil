@@ -21,8 +21,8 @@
  */
 
 // Optimizations of intrinsic functions.
-void intrinsic_opt (int a[1], int b[1], double c[1], double d[1], int e[1]);
-void intrinsic_opt (int a[1], int b[1], double c[1], double d[1], int e[1])
+void intrinsic_opt (int a[const static 1], int b[const static 1], double c[const static 1], double d[const static 1], int e[const static 1]);
+void intrinsic_opt (int a[const static 1], int b[const static 1], double c[const static 1], double d[const static 1], int e[const static 1])
 {
   a[0] = max(2, 4);
   b[0] = min(5, 1);

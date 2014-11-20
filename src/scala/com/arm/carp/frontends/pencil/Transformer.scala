@@ -1043,7 +1043,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     current_function_type = _type
     val name = nname.getText
     val params = (0 to (nargs.getChildCount - 1)).map(i =>
-      transformVariableDeclaration(nargs.getChild(i)) match {
+      transformVariableDeclaration(nargs.getChild(i), true) match {
         case Some(decl) => Some(decl)
         case None => {
           complain(in, "invalid function parameters")
@@ -1110,14 +1110,28 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   //Constants/Variables
 
-  private def checkRestrict(in: Tree): Boolean = {
-    val attrs = in.getChild(1).getChild(1)
+  private var array_arg_is_restrict = false
+  private var array_arg_is_static = false
+  private var array_arg_is_const = false
+
+  private def checkAttributes(in: Tree) = {
+    val attrs = in.getChild(1)
     for (i <- 0 to attrs.getChildCount() - 1) {
-      if (attrs.getChild(i).getText() == "restrict") {
-        return true
+      attrs.getChild(i).getText() match {
+        case "restrict" => {
+          check(!array_arg_is_restrict, in, "restrict attribute has already been supplied for this array")
+          array_arg_is_restrict = true
+        }
+        case "static" => {
+          check(!array_arg_is_static, in, "static attribute has already been supplied for this array")
+          array_arg_is_static = true
+        }
+        case "const" => {
+          check(!array_arg_is_const, in, "const attribute has already been supplied for this array")
+          array_arg_is_const = true
+        }
       }
     }
-    return false
   }
 
   /** Helper function to process array suffix* [..][..]...
@@ -1126,6 +1140,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     */
   private def processArraySuffix(in : Tree, start: Int, stop: Int, step: Int, baseType: Option[Type]): Option[Type] = {
     (start to stop by step).foldLeft(baseType)((tmpType, idx) => {
+      checkAttributes(in.getChild(idx))
       val size = transformScalarExpression(in.getChild(idx).getChild(0))
       (tmpType, size) match {
         case (Some(_type), Some(_size)) => {
@@ -1171,12 +1186,17 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   /** Handles BNF 'variable_decl_int: base_type declarator -> ^(DECL base_type declarator)'
     */
-  private def transformVariableDeclarationInt(decl: Tree, init: Option[Tree]): Option[Variable] = {
+  private def transformVariableDeclarationInt(decl: Tree, init: Option[Tree], arg: Boolean): Option[Variable] = {
     checkNode(decl, DECL, "DECL", 2)
     val baseType = decl.getChild(0)
     val declr    = decl.getChild(1)
 
     val _type1 = transformBaseType( baseType )
+
+    array_arg_is_restrict = false
+    array_arg_is_const = false
+    array_arg_is_static = false
+
     val (name, _type2) = transformDeclarator( _type1, declr )    /*_type2 evolves from _typ1: e.g. Array(PointerType(Array( _type1)))*/
 
     (name,_type2) match {
@@ -1201,18 +1221,26 @@ class Transformer(val filename: String) extends Common with Assertable {
         }
       }
       case (Some(name), Some(at: ArrayType)) => {
+        if (!arg) {
+          check(!array_arg_is_restrict, decl, "invalid restrict attribute for local array")
+          check(!array_arg_is_static, decl, "invalid static attribute for local array")
+          check(!array_arg_is_const, decl, "invalid const attribute for local array")
+        } else {
+          check(array_arg_is_static, decl, "missing mandatory static attribute for function argument")
+          check(array_arg_is_const, decl, "missing mandatory const attribute for function argument")
+        }
         init match {
           case Some(sinit) => {
             transformArrayInit(sinit, at) match {
               case Some(init) =>
-                Some(ArrayVariableDef(at, name, true, Some(init)))
+                Some(ArrayVariableDef(at, name, array_arg_is_restrict, Some(init)))
               case None => {
                 None
               }
             }
           }
           case None => {
-            Some(ArrayVariableDef(at, name, true, None))
+            Some(ArrayVariableDef(at, name, array_arg_is_restrict, None))
           }
         }
       }
@@ -1228,7 +1256,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     val decl = in.getChild(0)
     val init = in.getChild(1)
 
-    val (name, type1) = transformVariableDeclarationInt(decl, Some(init)) match {
+    val (name, type1) = transformVariableDeclarationInt(decl, Some(init), false) match {
       case Some(st: ScalarVariableDef) => (Some(st.name), Some(st))
       case Some(at: ArrayVariableDef ) => (Some(at.name), Some(at))
       case _ => (None, None)
@@ -1253,7 +1281,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformVariableDeclaration(in: Tree) = {
+  private def transformVariableDeclaration(in: Tree, arg: Boolean) = {
     val (decl, init) = if (in.getType == DECL_AND_INIT) {
       checkNode(in, DECL_AND_INIT, "DECL_AND_INIT", 2)
       (in.getChild(0), Some(in.getChild(1)))
@@ -1261,7 +1289,7 @@ class Transformer(val filename: String) extends Common with Assertable {
       (in, None)
     }
 
-    val (name, type1) = transformVariableDeclarationInt(decl, init) match {
+    val (name, type1) = transformVariableDeclarationInt(decl, init, arg) match {
       case Some(st: ScalarVariableDef) => (Some(st.name), Some(st))
       case Some(at: ArrayVariableDef ) => (Some(at.name), Some(at))
       case _ => (None, None)
@@ -1277,7 +1305,7 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   private def transformGlobalConstant(in: Tree) = {
     checkNode(in, DECL_AND_INIT, "DECL_AND_INIT", 2)
-    transformVariableDeclaration(in) match {
+    transformVariableDeclaration(in, false) match {
       case None =>
       case Some(decl) => {
         if (!decl.expType.const) {
@@ -1627,7 +1655,7 @@ class Transformer(val filename: String) extends Common with Assertable {
 
       case (_, _) =>
         /* treat as a normal declaration */
-        transformVariableDeclaration(in) match {
+        transformVariableDeclaration(in, false) match {
           case Some(variable: ArrayVariableDef) => Some(new ArrayDeclOperation(variable))
           case _ => None
         }

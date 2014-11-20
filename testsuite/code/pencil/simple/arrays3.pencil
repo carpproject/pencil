@@ -21,7 +21,7 @@
  */
 
 /* all {int A[1] = {12};} */
-void foo(int A[1], int i)
+void foo(int A[const static 1], int i)
 {
   int j = 12;
   int B[i + 1 + j];

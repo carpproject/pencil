@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int foo(int i, long A[10])
+int foo(int i, long A[restrict const static 10])
 {
     int S = i + 1;
     int B = i - 1;

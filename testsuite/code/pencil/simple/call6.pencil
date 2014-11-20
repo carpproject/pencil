@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-void foo (int i[10], int b)
+void foo (int i[const static 10], int b)
 {
 }
 

@@ -20,21 +20,7 @@
  * THE SOFTWARE.
  */
 
-int foo(int i, int j, int k, int m[const static k])
+void foo()
 {
-  if (i < j) {
-    return m[1];
-  } else {
-    return m[0];
-  }
+    float A[static 10]; /* all {@error} */
 }
-
-int test(int k, int m[const static k]) {
-  int s = foo(1,2, k, m);
-  return s;
-}
-
-/* optimizer {@require-option {-fgcp}} */
-/* optimizer {@check {CHECK: cloned}} */
-/* all {int m[2] = {0,1};} */
-/* all {@assert {test(2, m) == 1}} */
