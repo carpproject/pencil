@@ -295,26 +295,10 @@ class Printer extends Assertable {
     }
   }
 
-  private def needsQualifier(in: Type): Boolean = {
-    in match {
-      case _: ScalarType => false
-      case ArrayType(base, idx: IntegerConstant) => needsQualifier(base)
-      case _ => true
-    }
-  }
-
   private def getArgQualifier(in: Variable) = {
     in match {
-      case arr: ArrayVariableDef =>
-        if (!needsQualifier(arr.expType)) {
-          ""
-        } else {
-          if (arr.restrict) {
-            "restrict const static "
-          } else {
-            "const static "
-          }
-        }
+      case arr: ArrayVariableDef if (arr.restrict) => "restrict const static "
+      case arr: ArrayVariableDef => "const static "
       case _ => ""
     }
   }
