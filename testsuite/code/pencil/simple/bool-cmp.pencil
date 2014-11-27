@@ -22,7 +22,7 @@
 
 void test( ){
 
-  bool b = true;
+  _Bool b = true;
 
   if( b == false ) b = true;
 

@@ -147,7 +147,7 @@ tokens
   TYPE_VOID='void';
   TYPE_SHORT='short';
   TYPE_INT='int';
-  TYPE_BOOL='bool';
+  TYPE_BOOL='_Bool';
   TYPE_LONG='long';
   TYPE_FLOAT='float';
   TYPE_DOUBLE='double';

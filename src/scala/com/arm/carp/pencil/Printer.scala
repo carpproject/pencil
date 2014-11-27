@@ -232,7 +232,7 @@ class Printer extends Assertable {
     if (_type.const)
       buff.append("const ")
     _type match {
-      case BooleanType(_) => buff.append("bool ")
+      case BooleanType(_) => buff.append("_Bool ")
       case IntegerType(true, 8, _) => buff.append("char ")
       case IntegerType(true, 16, _) => buff.append("short ")
       case IntegerType(true, 32, _) => buff.append("int ")

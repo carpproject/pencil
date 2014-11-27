@@ -27,4 +27,4 @@ int foo(int A, int B[const static 10])
     }
 }
 
-/* all {@check {CHECK: (const bool )A}} */
+/* all {@check {CHECK: (const _Bool )A}} */
