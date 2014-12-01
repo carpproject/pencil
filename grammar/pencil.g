@@ -430,8 +430,8 @@ plus_expression: mult_expression ((PLUS^|MINUS^) mult_expression)*;
 
 mult_expression: cast_expression ((DIV^|MULT^|MOD^) cast_expression)*;
 
-cast_expression: BRACKET_LEFT scalar_type_fragment+ BRACKET_RIGHT cast_expression  ->
-                      ^(CAST ^(BUILTIN_TYPE scalar_type_fragment+) cast_expression)
+cast_expression: BRACKET_LEFT base_type BRACKET_RIGHT cast_expression  ->
+                      ^(CAST base_type cast_expression)
                   | unary_expression -> unary_expression;
 
 sizeof_expression: SIZEOF BRACKET_LEFT ptype BRACKET_RIGHT -> ^(SIZEOF ptype)

@@ -320,7 +320,14 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   private def transformCastExpression(in: Tree): Option[ConvertExpression] = {
     checkNode(in, CAST, "CAST", 2)
-    val op1 = transformBuiltInType(in.getChild(0))
+    val op1 = transformBaseType(in.getChild(0)) match {
+      case Some(s:ScalarType) if s.isNumeric || s.isBoolean => Some(s)
+      case Some(_) => {
+        complain(in, "Only numeric and boolean types are allowed in cast expressions")
+        None
+      }
+      case _ => None
+    }
     val op2 = transformScalarExpression(in.getChild(1))
     (op1, op2) match {
       case (Some(op1), Some(op2)) =>
