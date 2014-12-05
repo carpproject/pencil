@@ -201,7 +201,7 @@ case class UnaryPlusExpression(op1: ScalarExpression) extends ScalarMathUnaryExp
 
 /* Bit operation.  */
 case class BitOrExpression(op1: ScalarExpression, op2: ScalarExpression) extends ScalarBitBinaryExpression {
-  val op = "!"
+  val op = "|"
   def update(nop1: ScalarExpression, nop2: ScalarExpression) = this.copy(op1 = nop1, op2 = nop2)
 }
 
