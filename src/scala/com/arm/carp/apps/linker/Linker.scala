@@ -33,6 +33,7 @@ import scala.collection.mutable.ListBuffer
 import com.arm.carp.pencil.Program
 import com.arm.carp.pencil.Function
 import com.arm.carp.pencil.StructType
+import com.arm.carp.pencil.ScalarVariableDef
 import com.arm.carp.pencil.Variable
 import com.arm.carp.pencil.Checkable
 import com.arm.carp.pencil.Common
@@ -52,13 +53,21 @@ object Main extends Common {
 
   private var prototypes_only = false
 
+  private def same_constants(c1: Variable, c2: Variable) = {
+    (c1, c2) match {
+      case (s1: ScalarVariableDef, s2: ScalarVariableDef) => s1.expType == s2.expType && s1.init == s2.init
+      case _ => false
+    }
+  }
+
   private def link(in: Seq[Program]): Program = {
     val names = HashSet[String]()
     val functions = ListBuffer[Function]()
     val types = HashMap[String, StructType]()
     val prototypes = HashMap[String, Function]()
     val structs = ListBuffer[StructType]()
-    val consts = ListBuffer[Variable]()
+    val consts = HashMap[String, Variable]()
+    val const_list = ListBuffer[Variable]()
 
     def add_function_prototype(in: Function): Boolean = {
       if (!names.add(in.getName)) {
@@ -77,6 +86,19 @@ object Main extends Common {
           }
         }
       } else {
+        true
+      }
+    }
+
+    def add_constant(in: Variable): Boolean = {
+      if (!names.add(in.name)) {
+        consts.get(in.name) match {
+          case Some(cst) => same_constants(in, cst)
+          case _ => false
+        }
+      } else {
+        const_list.append(in)
+        consts.put (in.name, in)
         true
       }
     }
@@ -102,15 +124,14 @@ object Main extends Common {
         }
       }
       for (const <- prog.consts) {
-        if (!names.add(const.name)) {
+        if (!add_constant(const)) {
           complain("Name conflict during linking: const " + const.name)
         }
-        consts.append(const)
       }
     }
     val external = prototypes.values.filter(!functions.contains(_))
     functions.appendAll(external)
-    new Program(functions.toList, structs.toList, consts.toList)
+    new Program(functions.toList, structs.toList, const_list.toList)
   }
 
   private val inputFileNames = ListBuffer[(String, Boolean)]()
