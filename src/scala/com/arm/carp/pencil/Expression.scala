@@ -433,6 +433,17 @@ object ConstantComputer {
     new BooleanConstant(Some(operation(op1.value, op2.value)))
   }
 
+  /** Fold the scalar bit expression with constant integer operands.  */
+  def compute(exp: ScalarBitBinaryExpression, op1: IntegerConstant, op2: IntegerConstant): IntegerConstant = {
+    exp match {
+      case _: BitLShiftExpression => compute((a, b) => a << b, op1, op2)
+      case _: BitRShiftExpression => compute((a, b) => a >> b, op1, op2)
+      case _: BitAndExpression => compute((a, b) => a & b, op1, op2)
+      case _: BitOrExpression => compute((a, b) => a | b, op1, op2)
+      case _: BitXorExpression => compute((a, b) => a ^ b, op1, op2)
+    }
+  }
+
   /** Fold the scalar arithmetic expression with constant integer operands.  */
   def compute(exp: ScalarMathBinaryExpression, op1: IntegerConstant, op2: IntegerConstant): IntegerConstant = {
     exp match {
@@ -503,6 +514,7 @@ object ConstantComputer {
   def compute(exp: ScalarBinaryExpression, op1: ScalarExpression with Constant, op2: ScalarExpression with Constant): ScalarExpression with Constant = {
     Checkable.assert(op1.expType.compatible(op2.expType), (op1, op2), "incompatible types for compute")
     (exp, op1, op2) match {
+      case (exp: ScalarBitBinaryExpression, op1: IntegerConstant, op2: IntegerConstant) => compute(exp, op1, op2)
       case (exp: ScalarMathBinaryExpression, op1: IntegerConstant, op2: IntegerConstant) => compute(exp, op1, op2)
       case (exp: ScalarMathBinaryExpression, op1: FloatConstant, op2: FloatConstant) => compute(exp, op1, op2)
       case (exp: ScalarComparisonBinaryExpression, op1: IntegerConstant, op2: IntegerConstant) => compute(exp, op1, op2)
