@@ -16,3 +16,5 @@ configure
 /work
 /pencil.jar
 /docs
+*.sum
+*.log
