@@ -33,7 +33,7 @@ class Printer extends Assertable {
 
   private val glabels = HashMap[Operation, Int]()
 
-  private def getVarName(in: Variable) = in.name + "_" + in.id
+  private def getVarName(in: Variable) = in.getName()
   private def getFuncName(in: Function) = in.getName
 
   private def processWithSep(in: Iterable[Expression], sep: String) = {

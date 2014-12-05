@@ -1318,6 +1318,7 @@ class Transformer(val filename: String) extends Common with Assertable {
         if (!decl.expType.const) {
           complain(in, "global variables must be constants")
         }
+        decl.global = true
         consts += decl
       }
     }
