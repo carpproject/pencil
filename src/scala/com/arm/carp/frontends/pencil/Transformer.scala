@@ -869,6 +869,10 @@ class Transformer(val filename: String) extends Common with Assertable {
       case _ => ice(node, "unexpected modify node")
     }
     val lvalue = transformScalarExpression(node.getChild(0)) match {
+      case Some(variable:ScalarVariableRef) if variable.variable.iter => {
+        complain(node.getChild(0), "assignment to iterator is forbidden")
+        None
+      }
       case Some(exp:ScalarExpression with LValue) if !exp.expType.const => Some(exp)
       case Some(_) => {
         complain(node.getChild(0), "invalid lvalue")

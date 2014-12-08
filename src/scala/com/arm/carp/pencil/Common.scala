@@ -146,6 +146,12 @@ trait Checks extends Walker{
   override def walkAssignment(in: AssignmentOperation) = {
     assert(in.lvalue.expType.compatible(in.rvalue.expType), in, "assignment to lvalue of different type(" + in.lvalue + " = " + in.rvalue + ")")
     assert(!in.lvalue.expType.const, in, "assignment to non-assignable expression")
+    in.lvalue match {
+      case variable: ScalarVariableRef => {
+        assert(!variable.variable.iter, variable, "assignment to iterator is forbidden")
+      }
+      case _ =>
+    }
     super.walkAssignment(in)
   }
 
