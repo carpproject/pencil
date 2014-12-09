@@ -162,9 +162,10 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def complain(in: Tree, message: String) {
+  private def complain(in: Tree, message: String) = {
     error = true
     System.err.println(filename + " line " + in.getLine() + ":" + in.getCharPositionInLine + " error:" + message)
+    None
   }
 
   private def check(cond: Boolean, in: Tree, message: String): Boolean = {
@@ -324,7 +325,6 @@ class Transformer(val filename: String) extends Common with Assertable {
       case Some(s:ScalarType) if s.isNumeric || s.isBoolean => Some(s)
       case Some(_) => {
         complain(in, "Only numeric and boolean types are allowed in cast expressions")
-        None
       }
       case _ => None
     }
@@ -437,7 +437,6 @@ class Transformer(val filename: String) extends Common with Assertable {
       }
       case None => {
         complain(in, "Unknown function")
-        None
       }
     }
   }
@@ -446,14 +445,8 @@ class Transformer(val filename: String) extends Common with Assertable {
     checkNode(in, NAME, "NAME", 0)
     varmap.getVariable(in.getText) match {
       case Some(st: ScalarVariableRef) => Some(st)
-      case Some(at) => {
-        complain(in, "scalar variable expected")
-        None
-      }
-      case None => {
-        complain(in, "undeclared variable: " + in.getText)
-        None
-      }
+      case Some(at) => complain(in, "scalar variable expected")
+      case None => complain(in, "undeclared variable: " + in.getText)
     }
   }
 
@@ -470,7 +463,6 @@ class Transformer(val filename: String) extends Common with Assertable {
                 val idx = fields.indexWhere(field => field._1 == name.getText)
                 if (idx == -1) {
                   complain(in, "unknown struct field: " + name.getText)
-                  None
                 } else {
                   fields(idx)._2 match {
                     case _: ScalarType => Some(ScalarStructSubscription(base, idx))
@@ -479,10 +471,7 @@ class Transformer(val filename: String) extends Common with Assertable {
                   }
                 }
               }
-              case _ => {
-                complain(in.getChild(0), "struct expected")
-                None
-              }
+              case _ => complain(in.getChild(0), "struct expected")
             }
           }
           case _ => None
@@ -503,10 +492,7 @@ class Transformer(val filename: String) extends Common with Assertable {
               }
             }
           }
-          case (Some(_), _) => {
-            complain(in.getChild(0), "array expected")
-            None
-          }
+          case (Some(_), _) => complain(in.getChild(0), "array expected")
           case _ => None
         }
       }
@@ -514,10 +500,7 @@ class Transformer(val filename: String) extends Common with Assertable {
         checkNode(in, NAME, "NAME", 0)
         varmap.getVariable(in.getText) match {
           case Some(res) => Some(res)
-          case None => {
-            complain(in, "undeclared variable " + in.getText)
-            None
-          }
+          case None => complain(in, "undeclared variable " + in.getText)
         }
       }
       case CALL => transformCallExpression(in);
@@ -528,10 +511,7 @@ class Transformer(val filename: String) extends Common with Assertable {
   private def transformScalarArraySubs(in: Tree): Option[ScalarIdxExpression] = {
     transformTerm(in) match {
       case Some(res: ScalarIdxExpression) => Some(res)
-      case Some(_) => {
-        complain(in, "scalar result expected")
-        None
-      }
+      case Some(_) => complain(in, "scalar result expected")
       case None => None
     }
   }
@@ -539,10 +519,7 @@ class Transformer(val filename: String) extends Common with Assertable {
   private def transformScalarStructSubs(in: Tree): Option[ScalarStructSubscription] = {
     transformTerm(in) match {
       case Some(res: ScalarStructSubscription) => Some(res)
-      case Some(_) => {
-        complain(in, "scalar result expected")
-        None
-      }
+      case Some(_) => complain(in, "scalar result expected")
       case None => None
     }
   }
@@ -593,10 +570,8 @@ class Transformer(val filename: String) extends Common with Assertable {
           case (ARRAY_INIT, _type: ArrayType) => transformArrayInit(elem, _type)
           case (NUMBER | HEX_NUMBER, _: IntegerType) => transformIntConstant(elem)
           case (FLOAT_NUMBER | DOUBLE_NUMBER, _: FloatType) => transformFloatConstant(elem)
-          case (ARRAY_INIT | NUMBER | HEX_NUMBER | FLOAT_NUMBER | DOUBLE_NUMBER, _) => {
+          case (ARRAY_INIT | NUMBER | HEX_NUMBER | FLOAT_NUMBER | DOUBLE_NUMBER, _) =>
             complain(in, "invalid array init expression")
-            None
-          }
           case _ => ice(in, "invalid array init expression")
         }
       })
@@ -611,9 +586,7 @@ class Transformer(val filename: String) extends Common with Assertable {
           } else {
             Some(ArrayConstant(_type, items))
           }
-        case _ =>
-          complain(in, "variable-sized object may not be initialized")
-          None
+        case _ => complain(in, "variable-sized object may not be initialized")
       }
     }
   }
@@ -643,10 +616,7 @@ class Transformer(val filename: String) extends Common with Assertable {
           val op = varmap.getLabel(name.getText)
           op match {
             case Some(op) => Some(op)
-            case None => {
-              complain(name, "unknown label " + name.getText)
-              None
-            }
+            case None => complain(name, "unknown label " + name.getText)
           }
         }).filter(_.isDefined).map(_.get)
         Some(new IndependentLoop(Some(labels)))
@@ -675,10 +645,7 @@ class Transformer(val filename: String) extends Common with Assertable {
         varmap.addVariable(res, name)
         Some(new ScalarVariableRef(res))
       }
-      case _ => {
-        complain(ninit.getChild(2), "invalid iterator type")
-        None
-      }
+      case _ => complain(ninit.getChild(2), "invalid iterator type")
     }
 
     val step = nstep.getChild(0)
@@ -711,28 +678,24 @@ class Transformer(val filename: String) extends Common with Assertable {
                 Some(PlusExpression(exp, Constants.Integer32Constant1))
               } else {
                 complain(nguard, "invalid range for `for' loop")
-                None
               }
             case LESS =>
               if (rstep > 0) {
                 Some(MinusExpression(exp, Constants.Integer32Constant1))
               } else {
                 complain(nguard, "invalid range for `for' loop")
-                None
               }
             case LEQ =>
               if (rstep > 0) {
                 Some(exp)
               } else {
                 complain(nguard, "invalid range for `for' loop")
-                None
               }
             case GEQ =>
               if (rstep < 0) {
                 Some(exp)
               } else {
                 complain(nguard, "invalid range for `for' loop")
-                None
               }
             case _ => ice(nguard.getChild(1), "unexpected range guard node")
           }
@@ -871,13 +834,9 @@ class Transformer(val filename: String) extends Common with Assertable {
     val lvalue = transformScalarExpression(node.getChild(0)) match {
       case Some(variable:ScalarVariableRef) if variable.variable.iter => {
         complain(node.getChild(0), "assignment to iterator is forbidden")
-        None
       }
       case Some(exp:ScalarExpression with LValue) if !exp.expType.const => Some(exp)
-      case Some(_) => {
-        complain(node.getChild(0), "invalid lvalue")
-        None
-      }
+      case Some(_) => complain(node.getChild(0), "invalid lvalue")
       case None => None
     }
     val rvalue = node.getType match {
@@ -891,7 +850,6 @@ class Transformer(val filename: String) extends Common with Assertable {
           Some(new AssignmentOperation(lvalue, convertScalar(rvalue, lvalue.expType)))
         } else {
           complain(in, "invalid assignment")
-          None
         }
       case (Some(lvalue: ScalarExpression), Some(rvalue: ScalarExpression), Some(op)) =>
         if (rvalue.expType.convertible(lvalue.expType)) {
@@ -899,7 +857,6 @@ class Transformer(val filename: String) extends Common with Assertable {
           Some(new AssignmentOperation(lvalue, convertScalar(op(operand1, convertScalar(rvalue, lvalue.expType)), lvalue.expType)))
         } else {
           complain(in, "invalid assignment")
-          None
         }
       case _ => None
     }
@@ -913,9 +870,7 @@ class Transformer(val filename: String) extends Common with Assertable {
         checkNode(op, CALL, "CALL")
         transformCallExpression(in.getChild(0)) match {
           case Some(exp: CallExpression) => Some(new CallOperation(exp))
-          case Some(_) =>
-            complain(in, "invalid call statement")
-            None
+          case Some(_) => complain(in, "invalid call statement")
           case None => None
         }
       case PENCIL_USE =>
@@ -941,9 +896,7 @@ class Transformer(val filename: String) extends Common with Assertable {
         transformScalarExpression(op.getChild(0)) match {
           case None => None
           case Some(exp) if exp.expType.isBoolean => Some(new AssumeOperation(exp))
-          case Some(_) =>
-            complain(op, "boolean expression expected")
-            None
+          case Some(_) => complain(op, "boolean expression expected")
         }
     }
 
@@ -1045,9 +998,8 @@ class Transformer(val filename: String) extends Common with Assertable {
       transformType(ntype) match {
         case Some(st: ScalarType) => Some(st)
         case _ => {
-          complain(ntype, "invalid function type")
           lerror = true
-          None
+          complain(ntype, "invalid function type")
         }
       }
     }
@@ -1057,9 +1009,8 @@ class Transformer(val filename: String) extends Common with Assertable {
       transformVariableDeclaration(nargs.getChild(i), true) match {
         case Some(decl) => Some(decl)
         case None => {
-          complain(in, "invalid function parameters")
           lerror = true
-          None
+          complain(in, "invalid function parameters")
         }
       }).filter(_.isDefined).map(_.get)
     var const = false
@@ -1104,7 +1055,6 @@ class Transformer(val filename: String) extends Common with Assertable {
         case Some(function) => {
           if (function.ops.isDefined) {
             complain(in, "Function " + nname.getText + " has already been declared")
-            None
           } else {
             val correct = compatibleWithFunction(function, _type.get, params) && (function.local == local || static)
             if (check(correct, in, "function declaration conflicts with previous declaration")) {
@@ -1373,21 +1323,18 @@ class Transformer(val filename: String) extends Common with Assertable {
       case (1, 0, 0, 0, 0, 0) =>
         if (isLong || isShort || isSigned || isUnsigned) {
           complain(in, "invalid basic type specification")
-          None
         } else {
           Some(FloatType(64, isConst)) //double
         }
       case (0, 1, 0, 0, 0, 0) =>
         if (isLong || isShort || isSigned || isUnsigned) {
           complain(in, "invalid basic type specification")
-          None
         } else {
           Some(FloatType(32, isConst)) //float
         }
       case (0, 0, 1, 0, 0, 0) =>
         if (isLong || isShort || isSigned || isUnsigned) {
           complain(in, "invalid basic type specification")
-          None
         } else {
           Some(FloatType(16, isConst)) //half
         }
@@ -1395,7 +1342,6 @@ class Transformer(val filename: String) extends Common with Assertable {
       case (0, 0, 0, 0, 0, 1) =>
         if (isLong || isShort || isSigned || isUnsigned) {
           complain(in, "invalid basic type specification")
-          None
         } else {
           Some(BooleanType(isConst)) //bool
         }
@@ -1412,10 +1358,7 @@ class Transformer(val filename: String) extends Common with Assertable {
 
           case (false, false, true, _, false) => Some(IntegerType(true, 8, isConst)) //char
           case (false, false, true, false, true) => Some(IntegerType(false, 8, isConst)) //unsigned char
-          case _ => {
-            complain(in, "invalid basic type specification")
-            None
-          }
+          case _ => complain(in, "invalid basic type specification")
         }
       }
       case _ => {
@@ -1430,16 +1373,12 @@ class Transformer(val filename: String) extends Common with Assertable {
     val _type = if (struct) stypemap.get(name) else typemap.get(name)
 
     _type match {
-      case None => {
-        complain(in.getChild(0), "unknown type: " + name)
-        None
-      }
+      case None => complain(in.getChild(0), "unknown type: " + name)
       case Some(ptype) => {
         if (in.getChildCount > 1) {
           val child = in.getChild(1)
           if (in.getChildCount != 2 || child.getType != TYPE_CONST) {
             complain(in, "invalid type attributes")
-            None
           } else {
             Some(ptype.updateConst(true))
           }
@@ -1676,10 +1615,7 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   private def changeDeclnToCall(fname: Tree, arg: Tree, fullTree: Tree): Option[Operation] = {
     varmap.getVariable(arg.getText) match {
-      case None => {
-        complain(fullTree, " argument is an undeclared variable: " + arg.getText)
-        None
-      }
+      case None => complain(fullTree, " argument is an undeclared variable: " + arg.getText)
       case Some(argvar) => {
         fmap.get(fname.getText) match { /*find function using function name */
           case Some(function) => {
@@ -1697,9 +1633,7 @@ class Transformer(val filename: String) extends Common with Assertable {
               }
             }
           }
-          case None =>
-            complain(fname, "Function " + fname.getText + " undeclared")
-            None
+          case None => complain(fname, "Function " + fname.getText + " undeclared")
         }
       }
     }
