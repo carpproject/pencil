@@ -42,7 +42,7 @@ import scala.collection.mutable.Set
   * - while (false) {...} statements
   * - for loop with empty body
   * - Statements after return in the same block
-  * - self-equality conditions (a==a) in pencil assume statements
+  * - self-equality conditions (a==a) in assume statements
   */
 object DeadCodeElimination extends Pass("dce") {
 
