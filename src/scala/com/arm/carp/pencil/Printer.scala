@@ -66,6 +66,16 @@ class Printer extends Assertable {
     in.isInstanceOf[Constant] || in.isInstanceOf[LValue] || in.isInstanceOf[CallExpression]
   }
 
+  private def processIntegerConstant(cst: IntegerConstant) = {
+    buff.append(cst.value)
+    if (cst.expType.bits == 64) {
+      buff.append('l')
+    }
+    if (!cst.expType.signed) {
+      buff.append('u')
+    }
+  }
+
   private def process(in: Expression): Unit = {
     if (!omitExprParentheses(in))
       buff.append("(");
@@ -79,7 +89,7 @@ class Printer extends Assertable {
       case ScalarIdxExpression(array, idx) =>
         process(array); buff.append("["); process(idx); buff.append("]")
       case variable: VariableRef => buff.append(getVarName(variable.variable))
-      case IntegerConstant(_, value) => buff.append(value)
+      case icst:IntegerConstant => processIntegerConstant(icst)
       case FloatConstant(FloatType(64, _), value) => buff.append(value)
       case FloatConstant(FloatType(32, _), value) =>
         buff.append(value)

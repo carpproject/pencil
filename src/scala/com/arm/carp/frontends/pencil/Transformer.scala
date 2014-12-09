@@ -174,12 +174,40 @@ class Transformer(val filename: String) extends Common with Assertable {
     cond
   }
 
-  private def transformIntConstant(in: Tree): Option[IntegerConstant] = {
+  private def getConstantType(suffix: String, in: Tree) = {
+    suffix.toLowerCase() match {
+      case "ul" | "lu" => Some(IntegerType(false, 64, true))
+      case "u" => Some(IntegerType(false, 32, true))
+      case "l" => Some(IntegerType(true, 64, true))
+      case "" => Some(IntegerType(true, 32, true))
+      case _ => complain(in, "invalid integer constant suffix")
+    }
+  }
+
+  private def getConstantValue(text: String, in: Tree): Int = {
     in.getType match {
-      case NUMBER => Some(IntegerConstant(IntegerConstantType, Integer.parseInt(in.getText)))
-      case OCTAL_NUMBER => Some(IntegerConstant(IntegerConstantType, Integer.parseInt(in.getText, 8)))
-      case HEX_NUMBER => Some(IntegerConstant(IntegerConstantType, Integer.decode(in.getText)))
+      case NUMBER => Integer.parseInt(text)
+      case OCTAL_NUMBER => Integer.parseInt(text, 8)
+      case HEX_NUMBER => Integer.decode(text)
       case _ => ice(in, "invalid node for int constant")
+    }
+  }
+
+  private def createIntegerConstant(ctype: Option[IntegerType], value: Int) = {
+    ctype match {
+      case Some(ctype) => Some(IntegerConstant(ctype, value))
+      case None => None
+    }
+  }
+
+  val IntegerConstantPattern = "([x0-9A-F]*)([uUlL]*)".r
+
+  private def transformIntConstant(in: Tree): Option[IntegerConstant] = {
+
+    in.getText match {
+      case IntegerConstantPattern(text, suffix) =>
+        createIntegerConstant(getConstantType(suffix, in), getConstantValue(text, in))
+      case _ => complain(in, "invalid integer constant")
     }
   }
 

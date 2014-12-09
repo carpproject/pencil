@@ -211,17 +211,18 @@ LINE_COMMENT:'//' ~('\n'|'\r')* '\r'? '\n' {skip();};
 
 fragment LETTER: '$' | 'A'..'Z' | 'a'..'z' | '_';
 fragment DIGIT: '0'..'9';
+fragment NUMBER_SUFFIX: 'u' | 'U' | 'l' | 'L';
 fragment FLOAT_SUFFIX: 'f' | 'F';
 fragment HEX_DIGIT: (DIGIT|'a'..'f'|'A'..'F');
 fragment EXPONENT:('e'|'E')('+'|'-'|)DIGIT+;
 
 NAME: LETTER (LETTER|'0'..'9')*;
 
-HEX_NUMBER: '0' ('x'|'X') HEX_DIGIT+;
+HEX_NUMBER: '0' ('x'|'X') HEX_DIGIT+ NUMBER_SUFFIX*;
 
-NUMBER: ('0' | '1'..'9' DIGIT*);
+NUMBER: ('0' | '1'..'9' DIGIT*) NUMBER_SUFFIX*;
 
-OCTAL_NUMBER: '0' ('0'..'7')+;
+OCTAL_NUMBER: '0' ('0'..'7')+ NUMBER_SUFFIX*;
 
 DOUBLE_NUMBER: DIGIT* '.' DIGIT+ EXPONENT?| DIGIT EXPONENT;
 FLOAT_NUMBER: DOUBLE_NUMBER FLOAT_SUFFIX;
