@@ -217,7 +217,7 @@ object ConstantPropagation extends Pass("cp") {
     (res, None)
   }
 
-  private def getTypeSize (in: Type, as: ScalarType): ScalarExpression = {
+  private def getTypeSize (in: Type, as: IntegerType): ScalarExpression = {
     in match {
       case _:BooleanType => IntegerConstant (as, 4)
       case FloatType(bits, _) => IntegerConstant (as, bits / 8)

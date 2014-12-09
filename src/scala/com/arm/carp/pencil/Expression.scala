@@ -331,9 +331,9 @@ class ArrayVariableRef(val variable: ArrayVariableDef) extends ArrayExpression w
   override def toString() = "ArrayVariableRef(" + variable.toString + ")"
 }
 
-case class IntegerConstant(expType: ScalarType, value: Int) extends ScalarExpression with Constant
+case class IntegerConstant(expType: IntegerType, value: Int) extends ScalarExpression with Constant
 
-case class FloatConstant(expType: ScalarType, value: Double) extends ScalarExpression with Constant
+case class FloatConstant(expType: FloatType, value: Double) extends ScalarExpression with Constant
 
 case class BooleanConstant(value: Option[Boolean]) extends ScalarExpression with Constant {
   val expType = BooleanType(true)
