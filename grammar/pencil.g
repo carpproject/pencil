@@ -211,6 +211,7 @@ LINE_COMMENT:'//' ~('\n'|'\r')* '\r'? '\n' {skip();};
 
 fragment LETTER: '$' | 'A'..'Z' | 'a'..'z' | '_';
 fragment DIGIT: '0'..'9';
+fragment FLOAT_SUFFIX: 'f' | 'F';
 fragment HEX_DIGIT: (DIGIT|'a'..'f'|'A'..'F');
 fragment EXPONENT:('e'|'E')('+'|'-'|)DIGIT+;
 
@@ -223,7 +224,7 @@ NUMBER: ('0' | '1'..'9' DIGIT*);
 OCTAL_NUMBER: '0' ('0'..'7')+;
 
 DOUBLE_NUMBER: DIGIT* '.' DIGIT+ EXPONENT?| DIGIT EXPONENT;
-FLOAT_NUMBER: DOUBLE_NUMBER 'f';
+FLOAT_NUMBER: DOUBLE_NUMBER FLOAT_SUFFIX;
 
 //Parser
 
