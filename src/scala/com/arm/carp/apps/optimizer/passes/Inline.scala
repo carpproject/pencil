@@ -193,7 +193,7 @@ object Inline extends Pass("inline") {
         case Some(init) => (new ScalarVariableRef(result), Some(init))
       }
     } else {
-      (in, None)
+      super.walkCallExpression(in)
     }
   }
 
@@ -210,7 +210,7 @@ object Inline extends Pass("inline") {
         case Some(init) => Some(init)
       }
     } else {
-      Some(in)
+      super.walkCallOp(in)
     }
   }
 }
