@@ -20,10 +20,10 @@
  * THE SOFTWARE.
  */
 
-void foo_summary(int A, int B[const static 10]);
+void foo_summary(int A, int B[const restrict static 10]);
 
 
-int foo(int A, int B[const static 10]) __attribute__((pencil_access(foo_summary))) /* all {@error} */
+int foo(int A, int B[const restrict static 10]) __attribute__((pencil_access(foo_summary))) /* all {@error} */
 {
   B[8] = 123 + A;
   return A;

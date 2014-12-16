@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-void foo (int i[const static 10])
+void foo (int i[const restrict static 10])
 {
 }
 

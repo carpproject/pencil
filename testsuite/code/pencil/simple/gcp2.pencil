@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int foo(int i, int j, int k, int m[const static k])
+int foo(int i, int j, int k, int m[const restrict static k])
 {
   if (i < j) {
     return m[1];
@@ -29,7 +29,7 @@ int foo(int i, int j, int k, int m[const static k])
   }
 }
 
-int test(int k, int m[const static k]) {
+int test(int k, int m[const restrict static k]) {
   int s = foo(1,2, k, m);
   return s;
 }

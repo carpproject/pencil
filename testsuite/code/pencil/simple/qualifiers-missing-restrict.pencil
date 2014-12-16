@@ -20,13 +20,6 @@
  * THE SOFTWARE.
  */
 
-/* all {int A[1] = {12};} */
-void foo(int A[const restrict static 1], int i)
+void foo(int N, float A[const static N]) /* all {@error} */
 {
-  int j = 12;
-  int B[i + 1 + j];
-  B[0] = i;
-  A[0] = B[0];
 }
-/* all {foo(A, 1);} */
-/* all {@assert {A[0] == 1}} */

@@ -1161,6 +1161,9 @@ class Transformer(val filename: String) extends Common with Assertable {
         } else {
           check(array_arg_is_static, decl, "missing mandatory static attribute for function argument")
           check(array_arg_is_const, decl, "missing mandatory const attribute for function argument")
+
+          /* Make restrict mandatory. This can be changed in the future.  */
+          check(array_arg_is_restrict, decl, "missing mandatory restrict for function argument")
         }
         init match {
           case Some(sinit) => {

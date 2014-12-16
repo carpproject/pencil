@@ -31,7 +31,7 @@ struct SS
   struct S lala;
 };
 
-int foo(struct S in[const static 12]) {
+int foo(struct S in[const restrict static 12]) {
   return in[1+2+3].a;
 }
 

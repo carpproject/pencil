@@ -20,8 +20,8 @@
  * THE SOFTWARE.
  */
 
-void foo(float A[const static 3])
+void foo(float A[const restrict static 3])
 {
 }
 
-/* all {@check {CHECK: const static 3}} */
+/* all {@check {CHECK: restrict const static 3}} */

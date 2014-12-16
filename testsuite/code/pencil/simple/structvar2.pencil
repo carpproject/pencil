@@ -32,11 +32,11 @@ double noop(double in) {
 /* all {@assert {noop(1.0) == 1.0}} */
 /* all {@assert {noop(2.0) == 2.0}} */
 
-void copy(struct ComplexDouble in, struct ComplexDouble out[const static 1]) {
+void copy(struct ComplexDouble in, struct ComplexDouble out[const restrict static 1]) {
   out[0] = in;
 }
 
-void simplecopy(struct ComplexDouble in, struct ComplexDouble out[const static 1]) {
+void simplecopy(struct ComplexDouble in, struct ComplexDouble out[const restrict static 1]) {
   struct ComplexDouble v;
   v = in;
   out[0] = v;
@@ -82,14 +82,14 @@ struct ComplexDouble structreturnindirect(struct ComplexDouble par) {
   return w;
 }
 
-void doubleasg(struct ComplexDouble par, struct ComplexDouble out[const static 1]) {
+void doubleasg(struct ComplexDouble par, struct ComplexDouble out[const restrict static 1]) {
   struct ComplexDouble v;
   v.Re = par.Re * par.Im;
   v.Re = par.Re + par.Im;
   out[0] = v;
 }
 
-void structcall(struct ComplexDouble par, struct ComplexDouble out[restrict const static 1]) {
+void structcall(struct ComplexDouble par, struct ComplexDouble out[const restrict static 1]) {
   struct ComplexDouble v;
   v = structreturn(par);
   v.Re = v.Re + 1.1;

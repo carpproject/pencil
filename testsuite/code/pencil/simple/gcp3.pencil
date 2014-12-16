@@ -21,13 +21,13 @@
  */
 
 
-void f(int n, float a[const static n], float scal) {
+void f(int n, float a[const restrict static n], float scal) {
   for (int i = 0; i < n; i++) {
     a[i] = i*scal;
   }
 }
 
-void caller(int x, float a[const static x]) {
+void caller(int x, float a[const restrict static x]) {
   f(x, a, 0.3);
 }
 
