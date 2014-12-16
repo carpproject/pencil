@@ -886,36 +886,19 @@ class Transformer(val filename: String) extends Common with Assertable {
   }
 
   private def transformStatement(in: Tree, access: Boolean): Option[Operation] = {
-    val (stmt, access_block) = if (in.getType == ANNOTATED_STATEMENT) {
-      val block = Some(transformBlock(in.getChild(0), true))
-      if (check(!access, in, "nested access blocks are not allowed")) {
-        (in.getChild(1), None)
-      } else {
-        (in.getChild(1), block)
-      }
-    } else {
-      (in, None)
-    }
-
-    (stmt.getType match {
-      case FOR => transformFor(stmt, access)
-      case WHILE => transformWhile(stmt, access)
-      case IF => transformIf(stmt, access)
-      case BREAK => transformBreak(stmt, access)
-      case CONTINUE => transformContinue(stmt, access)
-      case RETURN => transformReturn(stmt, access)
+    in.getType match {
+      case FOR => transformFor(in, access)
+      case WHILE => transformWhile(in, access)
+      case IF => transformIf(in, access)
+      case BREAK => transformBreak(in, access)
+      case CONTINUE => transformContinue(in, access)
+      case RETURN => transformReturn(in, access)
       case EMPTY_STATEMENT => None
-      case BLOCK => Some(transformBlock(stmt, access))
-      case EXPRESSION_STATEMENT => transformExpressionStatement(stmt, access)
+      case BLOCK => Some(transformBlock(in, access))
+      case EXPRESSION_STATEMENT => transformExpressionStatement(in, access)
       case DECL => transformCallOrDecln(in)
-      case DECL_AND_INIT =>
-        transformVariableDeclarationStmt(in)
-      case MODIFY => transformModify(stmt, access)
-    }) match {
-      case Some(op) =>
-        op.access = access_block
-        Some(op)
-      case None => None
+      case DECL_AND_INIT => transformVariableDeclarationStmt(in)
+      case MODIFY => transformModify(in, access)
     }
   }
 

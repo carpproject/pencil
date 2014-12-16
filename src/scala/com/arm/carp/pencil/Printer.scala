@@ -249,15 +249,6 @@ class Printer extends Assertable {
     if (in.scop) {
       buff.append("\n#pragma scop\n")
     }
-    in.access match {
-      case Some(body) =>
-        in_macro = true
-        buff.append("\n#pragma pencil access")
-        process(body)
-        in_macro = false
-        buff.append("\n")
-      case None =>
-    }
     in match {
       case mov: AssignmentOperation => process(mov)
       case body: BlockOperation => process(body)

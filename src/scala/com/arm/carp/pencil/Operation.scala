@@ -37,10 +37,6 @@ case class Range(iter: ScalarVariableRef, low: ScalarExpression, upper: ScalarEx
 
 /** Base class for all PENCIL operations.  */
 abstract class Operation {
-  /**
-   * PENCIL access block associated with this operation.
-   */
-  var access: Option[BlockOperation] = None
   var info: Option[OperationPassInfo] = None
 
   protected def create_copy(): Operation

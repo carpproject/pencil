@@ -103,7 +103,6 @@ tokens
   PENCIL='pencil';
   IVDEP='ivdep';
   INDEPENDENT='independent';
-  ACCESS='access';
   PENCIL_ACCESS='pencil_access';
   PROGRAM;
   FUNCTION;
@@ -143,7 +142,6 @@ tokens
   USER_TYPE;
   USER_STRUCT_TYPE;
   EXPRESSION_STATEMENT;
-  ANNOTATED_STATEMENT;
   TYPE_VOID='void';
   TYPE_SHORT='short';
   TYPE_INT='int';
@@ -312,22 +310,11 @@ block: block_statement | statement -> ^(BLOCK statement);
 
 block_statement: BLOCK_LEFT scop* BLOCK_RIGHT -> ^(BLOCK scop*);
 
-scop: PRAGMA_PREFIX PRAGMA SCOP annotated_statement PRAGMA_PREFIX PRAGMA ENDSCOP
-        -> ^(SCOP annotated_statement)
-     | annotated_statement -> annotated_statement;
+scop: PRAGMA_PREFIX PRAGMA SCOP statement PRAGMA_PREFIX PRAGMA ENDSCOP
+        -> ^(SCOP statement)
+     | statement -> statement;
 
-statement_access_pragma: PRAGMA_PREFIX PRAGMA PENCIL ACCESS block -> block;
-
-annotated_statement: statement -> statement
-                    | block -> block
-                    | statement_access_pragma statement
-                      -> ^(ANNOTATED_STATEMENT statement_access_pragma statement)
-                    | statement_access_pragma block
-                      -> ^(ANNOTATED_STATEMENT statement_access_pragma block);
-
-
-
-statement: (modify SEMICOLON) -> modify| pfor | pwhile | pif | pbreak | pcontinue | preturn | variable_decl | expression_statement | empty_statement;
+statement: (modify SEMICOLON) -> modify| pfor | pwhile | pif | pbreak | pcontinue | preturn | variable_decl | expression_statement | empty_statement | block_statement;
 
 empty_statement: SEMICOLON -> ^(EMPTY_STATEMENT);
 

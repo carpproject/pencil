@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-int foo(int i, int A[const restrict static i])
+int foo(int i, int A[const restrict static i]) /* all {@error} */
 {
 #pragma pencil access {}
     A[i] = A[i+1] + 2.00;
