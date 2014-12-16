@@ -433,7 +433,7 @@ class Transformer(val filename: String) extends Common with Assertable {
           None
         } else {
           if (!(function.params, args).zipped.forall((variable, arg) =>
-            check(arg.expType.convertible(variable.expType), in, "invalid function argument for " + variable.name + " (" + arg.expType + " -> " + variable.expType + ")"))) {
+            check(arg.expType.convertible(variable.expType), in, "invalid function argument for " + variable.name))) {
             None
           } else {
             calls += function
@@ -1596,7 +1596,7 @@ class Transformer(val filename: String) extends Common with Assertable {
             } else {
               val variable = function.params(0)
               if (!check(argvar.expType.convertible(variable.expType), fullTree, "invalid function argument for " +
-                variable.name + " (" + argvar.expType + " -> " + variable.expType + ")")) {
+                variable.name)) {
                 None
               } else {
                 calls += function
