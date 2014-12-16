@@ -1052,15 +1052,15 @@ class Transformer(val filename: String) extends Common with Assertable {
     for (i <- 0 to attrs.getChildCount() - 1) {
       attrs.getChild(i).getText() match {
         case "restrict" => {
-          check(!array_arg_is_restrict, in, "restrict attribute has already been supplied for this array")
+          check(!array_arg_is_restrict, in, "restrict has already been supplied for this array")
           array_arg_is_restrict = true
         }
         case "static" => {
-          check(!array_arg_is_static, in, "static attribute has already been supplied for this array")
+          check(!array_arg_is_static, in, "static has already been supplied for this array")
           array_arg_is_static = true
         }
         case "const" => {
-          check(!array_arg_is_const, in, "const attribute has already been supplied for this array")
+          check(!array_arg_is_const, in, "const has already been supplied for this array")
           array_arg_is_const = true
         }
       }
@@ -1155,12 +1155,12 @@ class Transformer(val filename: String) extends Common with Assertable {
       }
       case (Some(name), Some(at: ArrayType)) => {
         if (!arg) {
-          check(!array_arg_is_restrict, decl, "invalid restrict attribute for local array")
-          check(!array_arg_is_static, decl, "invalid static attribute for local array")
-          check(!array_arg_is_const, decl, "invalid const attribute for local array")
+          check(!array_arg_is_restrict, decl, "invalid restrict usage for local array")
+          check(!array_arg_is_static, decl, "invalid static usage for local array")
+          check(!array_arg_is_const, decl, "invalid const usage for local array")
         } else {
-          check(array_arg_is_static, decl, "missing mandatory static attribute for function argument")
-          check(array_arg_is_const, decl, "missing mandatory const attribute for function argument")
+          check(array_arg_is_static, decl, "missing mandatory static for function argument")
+          check(array_arg_is_const, decl, "missing mandatory const for function argument")
 
           /* Make restrict mandatory. This can be changed in the future.  */
           check(array_arg_is_restrict, decl, "missing mandatory restrict for function argument")
