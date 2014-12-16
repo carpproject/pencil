@@ -191,32 +191,8 @@ trait Checks extends Walker{
     super.walkRange(in)
   }
 
-  /**
-    * Check for loop annotations.
-    *
-    * All labels in independent property must be unique.
-    */
-  def checkForProperties(in: Seq[ForProperties], op: ForOperation): Unit = {
-    for (item <- in) {
-      item match {
-        case IvdepLoop =>
-        case indep: IndependentLoop => {
-          indep.labels match {
-            case Some(labels) => {
-              assert(labels.size == labels.toSet.size, item, "labels in pragma independent must be unique")
-              //TODO check for label locations
-            }
-            case None =>
-          }
-        }
-        case _ => ice(item, "unexpected for property")
-      }
-    }
-  }
-
   /** Check for loop. */
   override def walkFor(in: ForOperation) = {
-    checkForProperties(in.properties, in)
     loops.push(in)
     val res = super.walkFor(in)
     loops.pop

@@ -149,10 +149,9 @@ abstract class ForProperties
 object IvdepLoop extends ForProperties
 
 /**
- * This property indicates that loop statements `labels' have no loop carried dependencies.
- * If the statement list is omitted, all statements are considered as having no loop carried dependencies.
+ * This property indicates that loop statements have no loop carried dependencies.
  */
-class IndependentLoop(val labels: Option[Seq[Operation]]) extends ForProperties
+object IndependentLoop extends ForProperties
 
 /**
  * PENCIL for operation.

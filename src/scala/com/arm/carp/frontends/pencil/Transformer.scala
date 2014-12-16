@@ -40,9 +40,6 @@ class NamespaceStack {
 
   private val data = Stack[Namespace]()
 
-  /** Labeled operations. */
-  private val ldata = Map[String, Operation]()
-
   /**
     * Create new namespace.
     *
@@ -59,10 +56,6 @@ class NamespaceStack {
     */
   def pop() = {
     data.pop
-    if (data.size == 1) {
-      /* We are in the global namespace, so label information should be purged.  */
-      ldata.clear
-    }
   }
 
   /**
@@ -92,21 +85,6 @@ class NamespaceStack {
         case _ => Checkable.ice(name, "required variable not found")
       }
     }
-  }
-
-  /** Register new label.  */
-  def addLabel(in: Operation, name: String) = {
-    if (ldata.contains(name)) {
-      false
-    } else {
-      ldata += ((name, in))
-      true
-    }
-  }
-
-  /** Get operation associated with the given label.  */
-  def getLabel(label: String): Option[Operation] = {
-    ldata.get(label)
   }
 }
 
@@ -630,29 +608,6 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  //Operations
-  private def transformIndependentPragma(in: Tree): Option[IndependentLoop] = {
-    checkNode(in, INDEPENDENT, "INDEPENDENT")
-    in.getChildCount match {
-      case 0 => Some(new IndependentLoop(None))
-      case 1 => {
-        val names = in.getChild(0)
-        checkNode(names, NAMES, "NAMES")
-        val labels = (intWrapper(0) to (names.getChildCount - 1)).map(i => {
-          val name = names.getChild(i)
-          checkNode(name, NAME, "NAME")
-          val op = varmap.getLabel(name.getText)
-          op match {
-            case Some(op) => Some(op)
-            case None => complain(name, "unknown label " + name.getText)
-          }
-        }).filter(_.isDefined).map(_.get)
-        Some(new IndependentLoop(Some(labels)))
-      }
-      case _ => ice(in, "unexpected number of children for independent node")
-    }
-  }
-
   private def transformRange(in: Tree): Option[Range] = {
     checkNode(in, RANGE, "RANGE", 3)
     val ninit = in.getChild(0)
@@ -751,7 +706,7 @@ class Transformer(val filename: String) extends Common with Assertable {
       val attr = nattrs.getChild(i)
       attr.getType match {
         case IVDEP => Some(IvdepLoop)
-        case INDEPENDENT => transformIndependentPragma(attr)
+        case INDEPENDENT => Some(IndependentLoop)
       }
     }).filter(_.isDefined).map(_.get)
     varmap.pop
@@ -931,7 +886,7 @@ class Transformer(val filename: String) extends Common with Assertable {
   }
 
   private def transformStatement(in: Tree, access: Boolean): Option[Operation] = {
-    val (lstmt, access_block) = if (in.getType == ANNOTATED_STATEMENT) {
+    val (stmt, access_block) = if (in.getType == ANNOTATED_STATEMENT) {
       val block = Some(transformBlock(in.getChild(0), true))
       if (check(!access, in, "nested access blocks are not allowed")) {
         (in.getChild(1), None)
@@ -940,12 +895,6 @@ class Transformer(val filename: String) extends Common with Assertable {
       }
     } else {
       (in, None)
-    }
-
-    val (stmt, label) = if (lstmt.getType == LABEL) {
-      (lstmt.getChild(1), Some(lstmt.getChild(0).getText))
-    } else {
-      (lstmt, None)
     }
 
     (stmt.getType match {
@@ -965,11 +914,6 @@ class Transformer(val filename: String) extends Common with Assertable {
     }) match {
       case Some(op) =>
         op.access = access_block
-        label match {
-          case Some(lname) =>
-            check(varmap.addLabel(op, lname), in, "label" + lname + " has already been declared")
-          case None =>
-        }
         Some(op)
       case None => None
     }

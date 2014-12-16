@@ -308,7 +308,7 @@ attr: TYPE_CONST -> ^(CONST_FUNCTION)
 
 attribute:(ATTRIBUTE BRACKET_LEFT BRACKET_LEFT attr BRACKET_RIGHT BRACKET_RIGHT) -> attr;
 
-block: block_statement | labeled_statement  -> ^(BLOCK labeled_statement);
+block: block_statement | statement -> ^(BLOCK statement);
 
 block_statement: BLOCK_LEFT scop* BLOCK_RIGHT -> ^(BLOCK scop*);
 
@@ -318,18 +318,14 @@ scop: PRAGMA_PREFIX PRAGMA SCOP annotated_statement PRAGMA_PREFIX PRAGMA ENDSCOP
 
 statement_access_pragma: PRAGMA_PREFIX PRAGMA PENCIL ACCESS block -> block;
 
-annotated_statement: labeled_statement -> labeled_statement
+annotated_statement: statement -> statement
                     | block -> block
-                    | statement_access_pragma labeled_statement
-                      -> ^(ANNOTATED_STATEMENT statement_access_pragma labeled_statement)
+                    | statement_access_pragma statement
+                      -> ^(ANNOTATED_STATEMENT statement_access_pragma statement)
                     | statement_access_pragma block
                       -> ^(ANNOTATED_STATEMENT statement_access_pragma block);
 
 
-
-labeled_statement: label COLON statement -> ^(LABEL label statement) | statement -> statement;
-
-label: NAME;
 
 statement: (modify SEMICOLON) -> modify| pfor | pwhile | pif | pbreak | pcontinue | preturn | variable_decl | expression_statement | empty_statement;
 
