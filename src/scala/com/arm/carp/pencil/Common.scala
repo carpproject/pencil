@@ -336,7 +336,6 @@ trait Checks extends Walker{
     val args = in.args
     (params, args).zipped.foreach { (param, arg) =>
       assert(arg.expType.convertible(param.expType), in, "invalid call expression (argument type)")
-      assert(arg.expType.isScalar || !arg.expType.const || param.expType.const, in, "invalid call expression (argument type)")
     }
     calls.addCall(current_function.get, in.func)
     super.walkCallExpression(in)

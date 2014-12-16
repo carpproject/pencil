@@ -213,7 +213,7 @@ case class ArrayType(base: Type, var range: ScalarExpression) extends Type(base.
   }
   override def convertible(t: Type) = {
     t match {
-      case ArrayType(tbase, _) => {
+      case ArrayType(tbase, _) if t.const || !const => {
         (base, tbase) match {
           case (t1: ScalarType, t2: ScalarType) => t1.compatible(t2)
           case _ => base.convertible(tbase)

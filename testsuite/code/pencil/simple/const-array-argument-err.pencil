@@ -1,0 +1,47 @@
+/*
+ * Copyright (c) 2013-2014, ARM Limited
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+struct short2 {
+ short x;
+ short y;
+};
+typedef unsigned int uint;
+typedef struct short2 short2;
+static void setVolume (const uint v_size_x, const uint v_size_y, const uint v_size_z,
+                       short2 v_data[restrict const static v_size_z][v_size_y][v_size_x],
+        const uint x, const uint y, const uint z, float d_x, float d_y) {
+ v_data[z][y][x].x = d_x * 32766.0f;
+ v_data[z][y][x].y = d_y;
+}
+int testcase (const uint vol_size_x, const uint vol_size_y, const uint vol_size_z,
+                  const short2 vol_data[restrict const static vol_size_z][vol_size_y][vol_size_x]) {
+ for (unsigned int y = 0; y < vol_size_y; y++) {
+  for (unsigned int x = 0; x < vol_size_x; x++) {
+   for (unsigned int z = 0; z < vol_size_z; ++z) {
+    const float data_x = 0.25f;
+    const float data_y = 0.75f;
+    setVolume(vol_size_x, vol_size_y, vol_size_z, vol_data, x, y, z, data_x, data_y); /* all {@error} */
+   }
+  }
+ }
+ return 5;
+}
