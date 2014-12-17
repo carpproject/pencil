@@ -46,5 +46,3 @@ void foo(int A[const restrict static 10], int N)
 /* optimizer {@check {CHECK: loop_invariant}} */
 /* optimizer {@check {CHECK: for}} */
 /* optimizer {@check {CHECK: loop_invariant}} */
-/* optimizer {@check {CHECK-NOT: lala}} */
-/* optimizer {@check {CHECK-NOT: gg}} */

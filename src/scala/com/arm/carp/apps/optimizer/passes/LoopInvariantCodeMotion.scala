@@ -160,13 +160,6 @@ object LICM extends Pass("licm") {
     (asInvariantExp(in.update(op._1), isInvariant(op._1)), op._2)
   }
 
-  private def canBeMoved(variable: ScalarVariableRef, self: AssignmentOperation) = {
-    !loops.isEmpty && (variable.info match {
-      case Some(defs:DefineSet) => defs.data.filter(_ != self).forall(isOutsideBlock(_, loops.top.ops))
-      case _ => ice(variable, "reaching definition information expected")
-    })
-  }
-
   private def withUpdatedRvalue(mov: AssignmentOperation, upd: ScalarExpression) = {
     mov.rvalue = upd
     mov
@@ -213,10 +206,6 @@ object LICM extends Pass("licm") {
     val rvalue = walkScalarExpression(in.rvalue)._1
     in.rvalue = rvalue
     in.lvalue match {
-      case variable:ScalarVariableRef if (isInvariant(rvalue) && canBeMoved(variable, in)) => {
-        addInvariant(in)
-        None
-      }
       case variable:ScalarVariableRef => Some(in)
       case _ => {
         in.lvalue = walkLValueExpression(in.lvalue)._1
