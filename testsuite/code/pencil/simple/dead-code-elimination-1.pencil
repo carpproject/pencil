@@ -24,7 +24,7 @@
 /* all {int A[12];} */
 int f (int i)
 {
-    int i = 1;
+    i = 1;
     if (false)
     {
         int dead_code;
