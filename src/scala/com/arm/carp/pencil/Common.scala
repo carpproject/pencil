@@ -83,7 +83,7 @@ object Warnings {
   * representation.
   *
   */
-trait Checks extends Walker{
+trait Checks extends Walker with Common {
 
   val refs = HashSet[VariableRef]()
 
@@ -94,6 +94,8 @@ trait Checks extends Walker{
   val calls = new CallGraph
 
   val loops = Stack[Operation]()
+
+  var return_count: Int = 0;
 
   def ice(data: Any, message: String): Unit
   def assert(cond: Boolean, data: Any, message: String): Unit
@@ -107,6 +109,8 @@ trait Checks extends Walker{
     * type of the function.
     */
   override def walkReturn(in: ReturnOperation) = {
+    assert(return_count == 0, in, "multiple returns are not allowed")
+    return_count = return_count + 1
     in.op match {
       case Some(exp) =>
         assert(exp.expType.compatible(current_function.get.retType), in, "invalid return expression")
@@ -377,8 +381,14 @@ trait Checks extends Walker{
   }
 
   override def walkFunction(in: Function) = {
+    return_count = 0
     current_function = Some(in)
-    super.walkFunction(in)
+    val result = super.walkFunction(in)
+    if (in.ops != None && in.retType != NopType) {
+      assert(return_count == 1, in.name, "missing return statement for non-void function")
+      assert(lastIsReturn(in.ops.get), in.name, "return must be the last statement")
+    }
+    result
   }
 
   override def walkProgram(in: Program) = {
@@ -469,6 +479,14 @@ trait Common {
       case x: UnaryMinusExpression => new MinusExpression(left, x.op1)
       case _ => new PlusExpression(left, right)
     }
+  }
+
+  def lastIsReturn(in: BlockOperation):Boolean = {
+    (in.ops.size > 0) && (in.ops.last match {
+      case _:ReturnOperation => true
+      case block: BlockOperation => lastIsReturn(block)
+      case _ => false
+    })
   }
 
   /** Construct a summation tree from a list of expressions.

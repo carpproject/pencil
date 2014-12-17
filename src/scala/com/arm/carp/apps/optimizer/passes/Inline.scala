@@ -30,8 +30,8 @@ import scala.language.postfixOps
 /**
   * Function inline pass.
   *
-  * Single-return PENCIL function (with return statement as a last stement)
-  * can be inlined.
+  * All PENCIL functions are single-return (with return statement as a last statement),
+  * so any function can be inlined.
   */
 
 object Inline extends Pass("inline") {
@@ -45,7 +45,6 @@ object Inline extends Pass("inline") {
     val scalars: ScalarVarMap, val arrays: ArrayVarMap,
     val eliminate_scops: Boolean) extends FunctionCloner {
 
-    var returnCount = 0
     var arrayStack = 0
 
     override def walkScalarVariable(in: ScalarVariableRef) = {
@@ -84,7 +83,6 @@ object Inline extends Pass("inline") {
       * Return value (if any) is assigned to result variable.
       */
     override def walkReturn(in: ReturnOperation) = {
-      returnCount = returnCount + 1
       (in.op, result) match {
         case (None, None) => None
         case (Some(op: ScalarExpression), Some(result: ScalarVariableDef)) =>
@@ -97,12 +95,7 @@ object Inline extends Pass("inline") {
       if (eliminate_scops) {
         in.scop = false
       }
-      if (returnCount < 2) {
-        super.walkOperation(in)
-      } else {
-        /* If returnCount >= 2 we can not inline, so there is no need to continue. */
-        None
-      }
+      super.walkOperation(in)
     }
 
     def update(in: BlockOperation) = {
@@ -147,16 +140,6 @@ object Inline extends Pass("inline") {
     keys.map(key => (key, new ScalarVariableDef(key.expType.updateConst(false), key.name, None))).toMap
   }
 
-  /** Check whether the last operation in block is a possibly nested
-      return statement. */
-  private def lastIsReturn(in: BlockOperation):Boolean = {
-    in.ops.last match {
-      case _:ReturnOperation => true
-      case block: BlockOperation => lastIsReturn(block)
-      case _ => false
-    }
-  }
-
   /** Inline given call expression and place the returned value into
       scalar value (if provided).  */
   private def inline(in: CallExpression, result: Option[ScalarVariableDef]): Option[BlockOperation] = {
@@ -167,14 +150,10 @@ object Inline extends Pass("inline") {
     val updater = new FunctionUpdater(result, scalarMapping, arrayMapping, in_scop)
     val scalarArgsInit = getInitialCode(in, scalarMapping)
     val ops = updater.update(in.func.ops.get)
-    if (updater.returnCount > 1 || updater.returnCount == 1 && !lastIsReturn(in.func.ops.get)) {
-      None
-    } else {
-      set_changed
-      makeBlock(scalarArgsInit, ops) match {
-        case Some(block) => Some(block)
-        case None => Some(new BlockOperation(List()))
-      }
+    set_changed
+    makeBlock(scalarArgsInit, ops) match {
+      case Some(block) => Some(block)
+      case None => Some(new BlockOperation(List()))
     }
   }
 

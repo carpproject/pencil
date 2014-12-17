@@ -31,7 +31,7 @@ struct _B
 typedef struct _A A;
 typedef struct _B B;
 
-A foo(B b)
+A foo(B b) /* all {@error} */
 {
     return (A)b; /* all {@error} */
 }

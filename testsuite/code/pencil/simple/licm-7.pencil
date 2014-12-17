@@ -24,12 +24,15 @@ int foo(int i)
 {
     int S = i + 1;
     int B = i - 1;
+    int result;
     for (int k = 0; k < 1000; ++k)
     {
         int s = (i < 10) ? (S + 10):(B - 20);
         long d = (long) k + (long)(S + B) + s;
-        return d;
+        result = d;
+        break;
     }
+    return result;
 }
 
 /* all {@assert {foo(1) == 14}} */

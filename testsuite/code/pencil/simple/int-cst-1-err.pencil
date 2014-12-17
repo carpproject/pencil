@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-long foo()
+long foo() /* all {@error} */
 {
     return 123123uu; /* all {@error} */
 }

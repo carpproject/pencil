@@ -100,6 +100,8 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   private val calls = new HashSet[Function]
 
+  private var return_counter: Int = 0;
+
   /**
     * Check whether given node has the expected tag and number of child nodes.
     *
@@ -769,6 +771,7 @@ class Transformer(val filename: String) extends Common with Assertable {
   }
 
   private def transformReturn(in: Tree, access: Boolean): Option[ReturnOperation] = {
+    return_counter += 1
     checkNode(in, RETURN, "RETURN")
     in.getChildCount match {
       case 0 =>
@@ -930,6 +933,14 @@ class Transformer(val filename: String) extends Common with Assertable {
     new BlockOperation(res)
   }
 
+  private def checkFunctionReturn(body: BlockOperation, return_counter: Int, in: Tree, void: Boolean) = {
+    return_counter match {
+      case 0 => check(void, in, "Missing return statement for non-void function")
+      case 1 => check(lastIsReturn(body), in, "Return statement must be the last statement in the function")
+      case _ => check(false, in, "multiple return statements are not allowed")
+    }
+  }
+
   private def transformFunction(in: Tree, static: Boolean, header: Boolean): Option[Function] = {
     varmap.push
     calls.clear
@@ -993,10 +1004,13 @@ class Transformer(val filename: String) extends Common with Assertable {
         case _ => ice(attr, "unexpected function attribute")
       }
     }
+    return_counter = 0
     val fbody: Option[BlockOperation] = if (nbody.getType == EMPTY_BODY) {
       None
     } else {
-      Some(transformBlock(nbody, false))
+      val body = transformBlock(nbody, false)
+      checkFunctionReturn(body, return_counter, in, ntype.getType == TYPE_VOID)
+      Some(body)
     }
     varmap.pop
     if (lerror) None else {

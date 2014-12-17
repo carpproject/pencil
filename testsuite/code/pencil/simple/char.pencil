@@ -23,13 +23,15 @@
 int mstrcmp(int N, char a[const restrict static N],
            char b[const restrict static N])
 {
+  int result = 0;
   for(int i = 0; i < N; i++) {
     if (a[i] == b[i]) {
       continue;
     }
-    return a[i]>b[i]?1:-1;
+    result = a[i]>b[i]?1:-1;
+    break;
   }
-  return 0;
+  return result == 0?0:result;
 }
 
 /* all {@assert {mstrcmp(2, "aa", "aa") == 0}} */

@@ -27,7 +27,7 @@ int foo()
 
 int bar()
 {
-    foo();
+    return foo();
 }
 
 /* optimizer {@require-option {-finline}} */

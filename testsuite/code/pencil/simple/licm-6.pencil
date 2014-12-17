@@ -24,15 +24,18 @@ int foo(int i)
 {
     int S = i + 1;
     int B = i - 1;
+    int g = -10;
+    int flag = 0;
     for (int k = 0; k < 2; ++k)
     {
         int s = ((i + k) < 10) ? (S + 10):(B - 20);
-        if (s > 0)
+        if (s > 0 && flag == 0)
         {
-            return s;
+            g = s;
+            flag = 1;
         }
     }
-    return -10;
+    return g;
 }
 
 /* all {@assert {foo(1) == 12}} */

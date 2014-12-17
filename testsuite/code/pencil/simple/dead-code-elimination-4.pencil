@@ -33,11 +33,13 @@ static int my_abs(int i)
 
 int bar(int i, int j)
 {
+    int result = 0;
     if (my_abs(i) > my_abs(j)) {
-        return i;
+        result = i;
     } else {
-        return j;
+        result = j;
     }
+    return result;
 }
 
 /* all {@assert {bar(1,2) == 2}} */
