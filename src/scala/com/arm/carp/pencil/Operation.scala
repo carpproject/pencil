@@ -144,10 +144,12 @@ abstract class ForProperties
 /** This property indicates that the corresponding loop is marked as a candidate for vectorization. */
 object IvdepLoop extends ForProperties
 
+case class ReductionLoopProperty(op: String, variables: Seq[ScalarVariableRef])
+
 /**
  * This property indicates that loop statements have no loop carried dependencies.
  */
-object IndependentLoop extends ForProperties
+class IndependentLoop(val reductions: Seq[ReductionLoopProperty]) extends ForProperties
 
 /**
  * PENCIL for operation.

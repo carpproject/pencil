@@ -103,6 +103,7 @@ tokens
   PENCIL='pencil';
   IVDEP='ivdep';
   INDEPENDENT='independent';
+  REDUCTION='reduction';
   PENCIL_ACCESS='pencil_access';
   PROGRAM;
   FUNCTION;
@@ -325,9 +326,11 @@ for_directive: (PRAGMA_PREFIX PRAGMA PENCIL ->) (ivdep_pragma -> ivdep_pragma
 
 ivdep_pragma: IVDEP -> ^(IVDEP);
 
-independent_pragma:
-  INDEPENDENT -> ^(INDEPENDENT)
-  | INDEPENDENT BRACKET_LEFT name_list BRACKET_RIGHT -> ^(INDEPENDENT name_list);
+reduction_op: PLUS | MINUS | MULT | NAME;
+
+reduction_part: REDUCTION BRACKET_LEFT reduction_op COLON name_list BRACKET_RIGHT -> ^(REDUCTION reduction_op name_list);
+
+independent_pragma: INDEPENDENT reduction_part* -> ^(INDEPENDENT reduction_part*);
 
 pfor_guard_op: GREATER|LESS|LEQ|GEQ;
 

@@ -695,6 +695,23 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
+  private def transformSingleReduction(in: Tree) = {
+    checkNode(in, REDUCTION, "REDUCTION", 2)
+    val op = in.getChild(0).getText
+    val names = in.getChild(1)
+    checkNode(names, NAMES, "NAMES")
+    val reduction_variables = (intWrapper(0) to (names.getChildCount - 1)).map(i =>
+      transformScalarVariable(names.getChild(i))).filter(_.isDefined).map(_.get)
+    ReductionLoopProperty(op, reduction_variables)
+  }
+
+  private def transformIndependentPragma(in: Tree) = {
+    checkNode(in, INDEPENDENT, "INDEPENDENT")
+    val reductions = (intWrapper(0) to (in.getChildCount - 1)).map(i =>
+      transformSingleReduction(in.getChild(i)))
+    Some(new IndependentLoop(reductions))
+  }
+
   private def transformFor(in: Tree): Option[ForOperation] = {
     checkNode(in, FOR, "FOR", 3)
     val nattrs = in.getChild(0)
@@ -704,15 +721,15 @@ class Transformer(val filename: String) extends Common with Assertable {
     val range = transformRange(nrange)
     varmap.push
     val ops = transformBlock(nbody, false)
+    varmap.pop
+    varmap.pop
     val attrs = (intWrapper(0) to (nattrs.getChildCount - 1)).map(i => {
       val attr = nattrs.getChild(i)
       attr.getType match {
         case IVDEP => Some(IvdepLoop)
-        case INDEPENDENT => Some(IndependentLoop)
+        case INDEPENDENT => transformIndependentPragma(attr)
       }
     }).filter(_.isDefined).map(_.get)
-    varmap.pop
-    varmap.pop
     range match {
       case Some(range) => Some(new ForOperation(attrs, range, ops))
       case _ => {

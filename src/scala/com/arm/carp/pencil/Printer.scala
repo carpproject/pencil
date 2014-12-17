@@ -174,11 +174,26 @@ class Printer extends Assertable {
     process(in.ops)
   }
 
+  private def processSingleReduction(in: ReductionLoopProperty) = {
+    buff.append(" reduction")
+    buff.append('(')
+    buff.append(in.op)
+    buff.append(':')
+    processWithSep(in.variables, ",")
+    buff.append(')')
+  }
+
+  private def processIndependent(in: IndependentLoop) = {
+    buff.append("#pragma pencil independent")
+    in.reductions.foreach(processSingleReduction)
+    buff.append('\n')
+  }
+
   private def process(in: ForOperation): Unit = {
     for (option <- in.properties) {
       option match {
         case IvdepLoop => buff.append("#pragma pencil ivdep\n")
-        case IndependentLoop => buff.append("#pragma pencil independent\n")
+        case indep:IndependentLoop =>  processIndependent(indep)
       }
     }
     buff.append("for(")
