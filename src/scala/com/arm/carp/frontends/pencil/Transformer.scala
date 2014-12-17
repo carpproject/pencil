@@ -695,7 +695,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformFor(in: Tree, access: Boolean): Option[ForOperation] = {
+  private def transformFor(in: Tree): Option[ForOperation] = {
     checkNode(in, FOR, "FOR", 3)
     val nattrs = in.getChild(0)
     val nrange = in.getChild(1)
@@ -703,7 +703,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     varmap.push
     val range = transformRange(nrange)
     varmap.push
-    val ops = transformBlock(nbody, access, false)
+    val ops = transformBlock(nbody, false)
     val attrs = (intWrapper(0) to (nattrs.getChildCount - 1)).map(i => {
       val attr = nattrs.getChild(i)
       attr.getType match {
@@ -721,17 +721,17 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformIf(in: Tree, access: Boolean): Option[IfOperation] = {
+  private def transformIf(in: Tree): Option[IfOperation] = {
     checkNode(in, IF, "IF")
     val guard = transformScalarExpression(in.getChild(0))
-    val body = transformBlock(in.getChild(1), access)
+    val body = transformBlock(in.getChild(1))
     guard match {
       case Some(guard) => {
         if (check(guard.expType.convertible(BooleanType(true)), in, "invalid guard expression")) {
           val actual_guard = convertScalar(guard, BooleanType(true))
           in.getChildCount match {
             case 2 => Some(new IfOperation(actual_guard, body, None))
-            case 3 => Some(new IfOperation(actual_guard, body, Some(transformBlock(in.getChild(2), access))))
+            case 3 => Some(new IfOperation(actual_guard, body, Some(transformBlock(in.getChild(2)))))
           }
         } else {
           None
@@ -743,10 +743,10 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformWhile(in: Tree, access: Boolean): Option[WhileOperation] = {
+  private def transformWhile(in: Tree): Option[WhileOperation] = {
     checkNode(in, WHILE, "WHILE", 2)
     val guard = transformScalarExpression(in.getChild(0))
-    val body = transformBlock(in.getChild(1), access)
+    val body = transformBlock(in.getChild(1))
     guard match {
       case Some(guard) =>
         if (check(guard.expType.convertible(BooleanType(true)), in, "invalid guard expression")) {
@@ -760,17 +760,17 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformBreak(in: Tree, access: Boolean): Option[BreakOperation] = {
+  private def transformBreak(in: Tree): Option[BreakOperation] = {
     checkNode(in, BREAK, "BREAK", 0)
     Some(new BreakOperation)
   }
 
-  private def transformContinue(in: Tree, access: Boolean): Option[ContinueOperation] = {
+  private def transformContinue(in: Tree): Option[ContinueOperation] = {
     checkNode(in, CONTINUE, "CONTINUE", 0)
     Some(new ContinueOperation)
   }
 
-  private def transformReturn(in: Tree, access: Boolean): Option[ReturnOperation] = {
+  private def transformReturn(in: Tree): Option[ReturnOperation] = {
     return_counter += 1
     checkNode(in, RETURN, "RETURN")
     in.getChildCount match {
@@ -800,7 +800,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformModify(in: Tree, access: Boolean): Option[Operation] = {
+  private def transformModify(in: Tree): Option[Operation] = {
     checkNode(in, MODIFY, "MODIFY", 1)
     val node = in.getChild(0)
     val exp = node.getType match {
@@ -848,7 +848,7 @@ class Transformer(val filename: String) extends Common with Assertable {
     }
   }
 
-  private def transformExpressionStatement(in: Tree, access: Boolean): Option[Operation] = {
+  private def transformExpressionStatement(in: Tree): Option[Operation] = {
     checkNode(in, EXPRESSION_STATEMENT, "EXPRESSION_STATEMENT", 1)
     val op = in.getChild(0)
     op.getType match {
@@ -888,33 +888,32 @@ class Transformer(val filename: String) extends Common with Assertable {
 
   }
 
-  private def transformStatement(in: Tree, access: Boolean): Option[Operation] = {
+  private def transformStatement(in: Tree): Option[Operation] = {
     in.getType match {
-      case FOR => transformFor(in, access)
-      case WHILE => transformWhile(in, access)
-      case IF => transformIf(in, access)
-      case BREAK => transformBreak(in, access)
-      case CONTINUE => transformContinue(in, access)
-      case RETURN => transformReturn(in, access)
+      case FOR => transformFor(in)
+      case WHILE => transformWhile(in)
+      case IF => transformIf(in)
+      case BREAK => transformBreak(in)
+      case CONTINUE => transformContinue(in)
+      case RETURN => transformReturn(in)
       case EMPTY_STATEMENT => None
-      case BLOCK => Some(transformBlock(in, access))
-      case EXPRESSION_STATEMENT => transformExpressionStatement(in, access)
+      case BLOCK => Some(transformBlock(in))
+      case EXPRESSION_STATEMENT => transformExpressionStatement(in)
       case DECL => transformCallOrDecln(in)
       case DECL_AND_INIT => transformVariableDeclarationStmt(in)
-      case MODIFY => transformModify(in, access)
+      case MODIFY => transformModify(in)
     }
   }
 
-  private def transformScop(in: Tree, access: Boolean) = {
+  private def transformScop(in: Tree) = {
     val (statement, scop) = (if (in.getType == SCOP) {
         checkNode(in, SCOP, "SCOP", 1)
-        check(!access, in, "pragma scop cannot be used inside access blocks")
         (in.getChild(0), true)
       } else {(in, false)})
     check(!in_scop || !scop, in, "Nested SCoPs are forbidden")
     val old_scop = in_scop
     in_scop = in_scop || scop
-    val ret = transformStatement(statement, access)
+    val ret = transformStatement(statement)
     ret match {
       case Some(statement) => statement.scop = scop
       case None =>
@@ -923,11 +922,11 @@ class Transformer(val filename: String) extends Common with Assertable {
     ret
   }
 
-  private def transformBlock(in: Tree, access: Boolean, push: Boolean = true): BlockOperation = {
+  private def transformBlock(in: Tree, push: Boolean = true): BlockOperation = {
     checkNode(in, BLOCK, "BLOCK")
     if (push) varmap.push
     val res = (intWrapper(0) to (in.getChildCount - 1)).map(i => {
-      transformScop(in.getChild(i), access)
+      transformScop(in.getChild(i))
     }).filter(_.isDefined).map(_.get)
     if (push) varmap.pop
     new BlockOperation(res)
