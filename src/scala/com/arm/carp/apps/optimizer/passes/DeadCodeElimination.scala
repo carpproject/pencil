@@ -42,7 +42,7 @@ import scala.collection.mutable.Set
   * - while (false) {...} statements
   * - for loop with empty body
   * - Statements after return in the same block
-  * - self-equality conditions (a==a) in assume statements
+  * - Assume statements with self-equality conditions (a==a) or (true).
   */
 object DeadCodeElimination extends Pass("dce") {
 
@@ -163,16 +163,16 @@ object DeadCodeElimination extends Pass("dce") {
     super.walkProgram(in)
   }
 
-  /**
-   * This clause will take care of PENCIL assume statements that express equality
-   * between two objects that are identical.
-   */
   override def walkPENCILOperation(in: Operation with PENCILOperation): Option[Operation] = {
-    // Only process EqualExpressions from Assume statements
     in match {
       case assumeOp : AssumeOperation => {
         assumeOp.op match {
+          // Prune assume statements that express equality between two identical objects.
           case EqualExpression(op1: ScalarVariableRef, op2: ScalarVariableRef) if op1.variable.id == op2.variable.id => {
+            return None
+          }
+          // Prune __pencil_assume(true) (which may be introduced by previous optimizations).
+          case BooleanConstant(Some(true)) => {
             return None
           }
           case _ =>
