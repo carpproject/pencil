@@ -54,6 +54,7 @@ packages-clean:
 
 clean:${ALL:%=%-clean} docs-clean packages-clean
 	echo ${CLEAN}
+	rm -f testsuite/code/pencil.h
 
 linker-clean:
 	ant  -Dname=linker -Dgrammar=pencil clean
