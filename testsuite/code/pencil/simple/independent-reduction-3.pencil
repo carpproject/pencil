@@ -29,7 +29,7 @@ void foo(int N, int A[const static restrict N], int B[const static restrict N])
     {
         A[B[i]] = i * i;
         total += A[B[i]];
-        total_max = max(total_max, total);
+        total_max = imax(total_max, total);
     }
 }
 /* all {@check {CHECK:pragma pencil independent reduction}} */

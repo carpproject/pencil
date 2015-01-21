@@ -24,11 +24,11 @@
 void intrinsic_opt (int a[const restrict static 1], int b[const restrict static 1], double c[const restrict static 1], double d[const restrict static 1], int e[const restrict static 1]);
 void intrinsic_opt (int a[const restrict static 1], int b[const restrict static 1], double c[const restrict static 1], double d[const restrict static 1], int e[const restrict static 1])
 {
-  a[0] = max(2, 4);
-  b[0] = min(5, 1);
-  c[0] = fmax(42.1, 654.321);
-  d[0] = fmin(-42.1, -321.7);
-  e[0] = max(12, min(42, 10+13));
+  a[0] = imax(2, 4);
+  b[0] = imin(5, 1);
+  c[0] = fmaxd(42.1, 654.321);
+  d[0] = fmind(-42.1, -321.7);
+  e[0] = imax(12, imin(42, 10+13));
 }
 
 /* all {int a, b, e;} */

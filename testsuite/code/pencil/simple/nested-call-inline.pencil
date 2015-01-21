@@ -36,7 +36,7 @@ static int my_min(int a, int b)
 
 int foo(int a, int b, int c, int d)
 {
-    return max(my_min(a, b), my_min(c, d));
+    return imax(my_min(a, b), my_min(c, d));
 }
 
 /* all {@assert {foo(1,2,3,4) == 3}} */

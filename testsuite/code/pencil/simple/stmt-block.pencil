@@ -24,7 +24,7 @@ int test(int N, int A[const restrict static N])
 {
   int rmax = A[0];
   for(int i = 1; i < N; i++)
-    rmax = max(A[i], rmax);
+    rmax = imax(A[i], rmax);
   return rmax;
 }
 
